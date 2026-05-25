@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+import { db } from "./firebase";
+import { ref, set, onValue, update, get } from "firebase/database";
+
 const QR_CDN = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');`;
 
@@ -70,30 +73,19 @@ const FB_CONFIG = {
   appId:             import.meta.env.VITE_FB_APP_ID,
 };
 
-let _db = null;
-async function getDb() {
-  if (_db) return _db;
-  await loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
-  await loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js");
-  if (!window.firebase.apps.length) window.firebase.initializeApp(FB_CONFIG);
-  _db = window.firebase.database();
-  return _db;
-}
-function loadScript(src) {
-  return new Promise((res, rej) => {
-    if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
-    const s = document.createElement("script");
-    s.src = src; s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
-}
-async function fbSet(path, val) { const db = await getDb(); await db.ref(path).set(val); }
-function fbListen(path, cb) {
-  let ref = null;
-  getDb().then(db => { ref = db.ref(path); ref.on("value", snap => cb(snap.exists() ? snap.val() : null)); });
-  return () => ref && ref.off();
+async function fbSet(path, val) {
+  await set(ref(db, path), val);
 }
 
+function fbListen(path, cb) {
+  const dbRef = ref(db, path);
+
+  const unsubscribe = onValue(dbRef, (snapshot) => {
+    cb(snapshot.exists() ? snapshot.val() : null);
+  });
+
+  return () => unsubscribe();
+}
 // ── Defaults ──────────────────────────────────────────────────────
 const DEFAULT_INSUMOS = [
   { id:"i1", code:"BDMT040808", desc:"Inserto romboidal 80°" },
