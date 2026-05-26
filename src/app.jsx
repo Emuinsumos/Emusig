@@ -202,7 +202,7 @@ export default function App() {
         await set(ref(db, "prodPin"), "9999");
       }
       setReady(true);
-    });
+    })();
     return () => unsubs.forEach(fn => fn());
   }, []);
 
