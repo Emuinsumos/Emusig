@@ -203,6 +203,8 @@ export default function App() {
     // Para que la app no quede colgada
     setReady(true);
   });
+    return () => unsubs.forEach(fn => fn());
+}, []);
 
   const addPedido         = useCallback((p) => { fbSet(`pedidos/${p.id}`, p); }, []);
   const updatePedido      = useCallback((id, ch) => { getDb().then(db => db.ref(`pedidos/${id}`).update(ch)); }, []);
