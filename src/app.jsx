@@ -123,14 +123,6 @@ const STATUS_MANT = {
   pendiente: { label:"Pendiente", color:"#F59E0B", bg:"#FEF3C7" },
   recibido:  { label:"Recibido",  color:"#16a34a", bg:"#dcfce7" },
 };
-const ORANGE = "#ea580c";
-const TURNOS_CONFIG = {
-  "Mañana": { inicio:6,  slots:9, label:"06:00 - 14:30" },
-  "Tarde":  { inicio:14, slots:9, label:"14:30 - 23:00" },
-  "Noche":  { inicio:23, slots:8, label:"23:00 - 06:00" },
-};
-const TURNOS = ["Mañana","Tarde","Noche"];
-
 const EmuLogo = () => null;
 
 const CSS = `
