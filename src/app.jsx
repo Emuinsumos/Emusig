@@ -180,25 +180,29 @@ export default function App() {
     unsubs.push(fbListen("prodPiezas",     v => setProdPiezas(toArr(v))));
     unsubs.push(fbListen("prodMotivos",    v => setProdMotivos(v ? toArr(v) : DEFAULT_MOTIVOS)));
 
-    getDb().then(async db => {
-      const snap = await db.ref("machines").once("value");
-      if (!snap.exists()) {
-        const mObj = {}; DEFAULT_MACHINES.forEach(m => { mObj[m.id] = m; });
-        const iObj = {}; DEFAULT_INSUMOS.forEach(i  => { iObj[i.id] = i; });
-        const tObj = {}; DEFAULT_TIPOS.forEach((t,i)   => { tObj[`t${i}`] = t; });
-        const mtvObj = {}; DEFAULT_MOTIVOS.forEach((m,i) => { mtvObj[`mv${i}`] = m; });
-        await db.ref("machines").set(mObj);
-        await db.ref("insumos").set(iObj);
-        await db.ref("tiposFalla").set(tObj);
-        await db.ref("prodMotivos").set(mtvObj);
-        await db.ref("panolPin").set("1234");
-        await db.ref("mantPin").set("5678");
-        await db.ref("prodPin").set("9999");
-      }
-      setReady(true);
-    });
-    return () => unsubs.forEach(fn => fn());
-  }, []);
+    getDb()
+  .then(async db => {
+    const snap = await db.ref("machines").once("value");
+
+    if (!snap.exists()) {
+      const mObj = {};
+      DEFAULT_MACHINES.forEach(m => { mObj[m.id] = m; });
+
+      const iObj = {};
+      DEFAULT_INSUMOS.forEach(i => { iObj[i.id] = i; });
+
+      await db.ref("machines").set(mObj);
+      await db.ref("insumos").set(iObj);
+    }
+
+    setReady(true);
+  })
+  .catch(err => {
+    console.error("Firebase error:", err);
+
+    // Para que la app no quede colgada
+    setReady(true);
+  });
 
   const addPedido         = useCallback((p) => { fbSet(`pedidos/${p.id}`, p); }, []);
   const updatePedido      = useCallback((id, ch) => { getDb().then(db => db.ref(`pedidos/${id}`).update(ch)); }, []);
