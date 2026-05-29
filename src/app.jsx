@@ -1381,14 +1381,6 @@ function StatsMant({ mantenimientos, machines }) {
 // ════════════════════════════════════════════════════════════════════
 // PRODUCCIÓN VIEW
 // ════════════════════════════════════════════════════════════════════
-const ORANGE = "#ea580c";
-// Configuración de turnos con horarios fijos
-const TURNOS_CONFIG = {
-  "Mañana": { inicio: 6,  slots: 9,  label: "06:00 - 14:30" },
-  "Tarde":  { inicio: 14, slots: 9,  label: "14:30 - 23:00" },
-  "Noche":  { inicio: 23, slots: 8,  label: "23:00 - 06:00" },
-};
-const TURNOS = ["Mañana","Tarde","Noche"];
 
 function ProduccionView({ registros, addRegistro, logged, setLogged, setView, prodPin, setProdPin, operarios, setOperarios, piezas, setPiezas, motivos, setMotivos, machines }) {
   const [loginStep, setLoginStep]   = useState("panel"); // "panel" | "operario"
