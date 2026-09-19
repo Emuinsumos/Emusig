@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S.I.G. · Manual de uso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          page: '#f0f4f1',
+          surface: '#ffffff',
+          surface2: '#f6faf7',
+          border: '#d1e8d8',
+          ink: '#1a2e1a',
+          muted: '#6b8f72',
+          dark: '#0f1f0f',
+          green: '#16a34a',
+          'green-hi': '#22c55e',
+          'green-bg': '#f0fdf4',
+          orange: '#ea580c',
+          'orange-bg': '#fff7ed',
+          'orange-bd': '#fed7aa',
+          blue: '#1d4ed8',
+          'blue-bg': '#dbeafe',
+          purple: '#7c3aed',
+          'purple-bg': '#ede9fe',
+          amber: '#f59e0b',
+          'amber-bg': '#fef3c7',
+          red: '#ef4444',
+          'red-bg': '#fef2f2',
+        },
+        fontFamily: {
+          display: ['"Bebas Neue"', 'sans-serif'],
+          sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+      },
+    },
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { background: #f0f4f1; }
+  ::selection { background: #bbf7d0; color: #0f1f0f; }
+  @media print {
+    @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
+    html { font-size: 11px; }
+    body { background: white !important; }
+    .no-print { display: none !important; }
+    .print-break { break-before: page; }
+    .print-avoid { break-inside: avoid; }
+    a { color: inherit !important; text-decoration: none !important; }
+  }
+</style>
+</head>
+<body class="min-h-screen bg-page text-ink font-sans">
+
+<header class="no-print sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
+  <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+    <button type="button" id="openMenuBtn" class="rounded-lg border border-border p-2 text-muted lg:hidden" aria-label="Abrir índice">
+      <i data-lucide="menu" class="h-5 w-5"></i>
+    </button>
+    <div class="min-w-0">
+      <div class="font-display text-lg tracking-[0.16em] text-green sm:text-xl">S.I.G. · E.M.U. SAIC</div>
+      <div class="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Manual de uso</div>
+    </div>
+    <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 rounded-xl bg-green px-3 py-2 font-display text-sm tracking-[0.12em] text-white">
+      <i data-lucide="printer" class="h-4 w-4"></i>
+      <span class="hidden sm:inline">Imprimir / PDF</span>
+    </button>
+  </div>
+</header>
+
+<div class="mx-auto grid max-w-6xl grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
+  <aside id="sidebar" class="no-print fixed inset-y-0 left-0 z-50 w-72 -translate-x-full overflow-y-auto border-r border-border bg-surface p-4 transition-transform lg:sticky lg:top-[61px] lg:z-0 lg:h-[calc(100vh-61px)] lg:w-auto lg:translate-x-0 lg:bg-transparent">
+    <div class="mb-4 flex items-center justify-between lg:hidden">
+      <span class="font-display tracking-[0.12em] text-green">Índice</span>
+      <button type="button" id="closeMenuBtn" class="rounded-lg border border-border p-1.5 text-muted" aria-label="Cerrar">
+        <i data-lucide="x" class="h-4 w-4"></i>
+      </button>
+    </div>
+    <nav class="space-y-4" id="tocNav"></nav>
+  </aside>
+  <button type="button" id="overlay" class="no-print fixed inset-0 z-40 hidden bg-dark/30 lg:hidden" aria-label="Cerrar menú"></button>
+
+  <main class="min-w-0 overflow-x-hidden px-4 py-8 sm:px-8 lg:py-12">
+    <div class="space-y-16" id="chapters">
+
+      <!-- PORTADA -->
+      <section id="portada" class="print-avoid">
+        <div class="overflow-hidden rounded-3xl border border-border bg-surface">
+          <div class="bg-dark px-6 py-10 text-center sm:px-12 sm:py-14">
+            <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-green">
+              <i data-lucide="factory" class="h-8 w-8 text-white"></i>
+            </div>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-green-hi">E.M.U. SAIC</p>
+            <h1 class="font-display mt-3 text-5xl tracking-[0.08em] text-white sm:text-6xl sm:tracking-[0.14em]">S.I.G.</h1>
+            <p class="font-display mt-1 text-2xl tracking-[0.18em] text-green-hi">Sistema de Gestión Interna</p>
+            <div class="mx-auto mt-6 h-px w-24 bg-green"></div>
+            <p class="font-display mt-6 text-3xl tracking-[0.12em] text-white">Manual de uso</p>
+            <p class="mt-2 text-sm text-white/70">Guía completa de operación · Pañol · Mantenimiento · Producción · Calidad</p>
+          </div>
+          <div class="grid gap-px bg-border sm:grid-cols-3">
+            <div class="bg-surface px-5 py-4">
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Documento</p>
+              <p class="mt-1 text-sm font-medium text-ink">Manual de uso S.I.G. E.M.U. SAIC</p>
+            </div>
+            <div class="bg-surface px-5 py-4">
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Alcance</p>
+              <p class="mt-1 text-sm font-medium text-ink">Todos los módulos y puestos</p>
+            </div>
+            <div class="bg-surface px-5 py-4">
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Edición</p>
+              <p class="mt-1 text-sm font-medium text-ink">Septiembre 2026</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INDICE -->
+      <section id="indice" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Documento</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-ink">Índice</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p class="text-muted">Este manual cubre cada pantalla del S.I.G. tal como está implementada en planta. Está pensado para operarios, pañoleros, mantenimiento, supervisión de producción, calidad y administración.</p>
+          <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+            <ol class="columns-1 gap-8 sm:columns-2" id="indiceList"></ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- INTRODUCCION -->
+      <section id="introduccion" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 1</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-green">Introducción</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>El <strong>Sistema de Gestión Interna (S.I.G.)</strong> de <strong>E.M.U. SAIC</strong> es la plataforma digital que conecta el piso de fábrica con pañol, mantenimiento, producción y calidad. Reemplaza planillas sueltas, pedidos a viva voz y controles en papel por un flujo único, en tiempo real, accesible desde el celular o la tablet del puesto.</p>
+          <p>Cada máquina tiene su puesto. Desde ahí el operario pide insumos, avisa una falla, carga la producción del turno, completa planillas de control y consulta planos. Los paneles de cada área reciben esa información al instante, la procesan y la devuelven como stock, OEE, certificados y estadísticas.</p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">Para quién es este manual</h3>
+              <ul class="mt-3 space-y-1.5 text-sm text-muted">
+                <li>Operarios de máquina (puesto de trabajo)</li>
+                <li>Personal de pañol / almacén de insumos</li>
+                <li>Técnicos de mantenimiento</li>
+                <li>Supervisión y jefatura de producción</li>
+                <li>Inspectores y responsables de calidad</li>
+                <li>Administradores del sistema (usuario admin)</li>
+              </ul>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">Qué cubre</h3>
+              <ul class="mt-3 space-y-1.5 text-sm text-muted">
+                <li>Inicio de sesión y permisos por área</li>
+                <li>Pedido de insumos y stock</li>
+                <li>Solicitudes de mantenimiento y FAQ de fallas</li>
+                <li>Carga de turno, descartes y OEE</li>
+                <li>Planillas de control, Cpk y certificados</li>
+                <li>Backup, reportes Excel y códigos QR</li>
+              </ul>
+            </div>
+          </div>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-green-bg border-border text-ink">
+            <div class="mb-1 font-semibold text-green">Cómo está organizado</div>
+            <div class="text-ink/90">Primero se explican los beneficios de usar el sistema. Después, el acceso. A continuación, cada módulo en el mismo orden que aparece en la pantalla de inicio: Puesto, Pañol, Mantenimiento, Producción y Calidad. Al final hay cálculo de OEE, backup, glosario y una guía rápida de problemas.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BENEFICIOS -->
+      <section id="beneficios" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 2</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-green">Por qué usar el S.I.G.</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>Digitalizar el piso no es un trámite de sistemas: es una palanca de productividad, de calidad, de trazabilidad y también de menor impacto ambiental. El S.I.G. está diseñado alrededor de esos cuatro ejes.</p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <p class="font-display text-sm tracking-[0.16em] text-orange">Productivo</p>
+              <h3 class="font-display mt-1 text-2xl tracking-[0.08em] text-ink">Menos espera, más husillo girando</h3>
+              <p class="mt-2 text-sm leading-relaxed text-muted">El pedido a pañol sale del puesto en segundos: no hay que abandonar la máquina ni anotar en un papel que se pierde. Mantenimiento ve la falla al instante, con tipo y descripción. El OEE muestra dónde se pierde el turno (paradas, ciclo, calidad) y el Pareto de paradas ordena las causas. La entrega de turno deja pendientes y minutos parados visibles para el que entra. El FAQ de fallas conocidas evita redescubrir el mismo arreglo.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <p class="font-display text-sm tracking-[0.16em] text-purple">Calidad</p>
+              <h3 class="font-display mt-1 text-2xl tracking-[0.08em] text-ink">Control en la máquina, evidencia al cliente</h3>
+              <p class="mt-2 text-sm leading-relaxed text-muted">Las planillas se llenan pieza a pieza, con tolerancia en verde o rojo, cotas críticas, gráfico de variación y Cpk histórico de esa máquina. Calidad recibe el envío, lo revisa, exporta Excel o descarga un certificado PDF. Se puede rastrear un N° de pieza a lo largo de los turnos. Scrap, fundición y pendiente llevan N° y motivo: no hay "números sueltos" sin causa.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <p class="font-display text-sm tracking-[0.16em] text-blue">Gestión de datos</p>
+              <h3 class="font-display mt-1 text-2xl tracking-[0.08em] text-ink">Una sola fuente de verdad</h3>
+              <p class="mt-2 text-sm leading-relaxed text-muted">Pedidos, mantenimientos, turnos, planillas, stock, piezas, operarios y documentos viven en el mismo sistema, sincronizado entre dispositivos. Los paneles exportan a Excel. El backup manual descarga un JSON completo para archivo propio. Los historiales se pueden ampliar más allá de la ventana reciente (30/60 días) cuando hay que analizar un trimestre o el año.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <p class="font-display text-sm tracking-[0.16em] text-green">Impacto ambiental</p>
+              <h3 class="font-display mt-1 text-2xl tracking-[0.08em] text-ink">Menos scrap, menos papel, menos idle</h3>
+              <p class="mt-2 text-sm leading-relaxed text-muted">Cada pieza scrapeada o de fundición queda identificada con motivo: eso permite atacar la causa, no solo contar el desperdicio. Menos retrabajo es menos metal, energía, refrigerante e insertos consumidos. El stock mínimo evita sobrecomprar carburo. Las horas marcadas "no funcionó" y el OEE visibilizan máquinas idle que siguen consumiendo. Reemplazar planillas de papel por planillas digitales recorta impresión y archivo físico.</p>
+            </div>
+          </div>
+          <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+            <h3 class="font-display text-xl tracking-[0.1em] text-ink">Lo que cambia en el día a día</h3>
+            <div class="mt-3">
+              <div class="flex flex-col gap-1 border-b border-border py-2 last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Pedido de inserto</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Del puesto, con cantidad y nota</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Aviso de falla</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Tipo + descripción, alerta sonora en el panel</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Carga de producción</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Izq/Der, scrap, fundición, pendiente, paradas, piezas/hora</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Control dimensional</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Planilla en la máquina, autoguardado, envío a Calidad</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Plano / hoja de datos</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">PDF de la pieza, abierto en el puesto</div></div>
+              <div class="flex flex-col gap-1 py-2 last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Indicadores</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">OEE, Cpk, Pareto, stock bajo, fallas recurrentes</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACCESO -->
+      <section id="acceso" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 3</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-ink">Acceso y seguridad</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>Al abrir el S.I.G. se ve la pantalla de inicio: la lista de <strong>puestos de trabajo</strong> (una fila por máquina) y cuatro paneles de área — Pañol, Mantenimiento, Producción y Calidad. Si hay más de cinco máquinas aparece un buscador. Los globos rojos indican pedidos, solicitudes o planillas pendientes de revisión.</p>
+
+          <div class="print-avoid overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+            <div class="flex items-center justify-between px-4 py-2.5 bg-green">
+              <span class="font-display text-sm tracking-[0.16em] text-white">Sistema de Gestión Interna</span>
+              <span class="h-2 w-2 rounded-full bg-white/70"></span>
+            </div>
+            <div class="space-y-2 bg-page p-3">
+              <div class="rounded-xl border border-border bg-surface p-3">
+                <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">Puesto de trabajo</p>
+                <div class="space-y-1.5">
+                  <div class="rounded-lg border border-border bg-surface2 px-3 py-2 text-sm">Torno CNC-1</div>
+                  <div class="rounded-lg border border-border bg-surface2 px-3 py-2 text-sm">Torno CNC-2</div>
+                  <div class="rounded-lg border border-border bg-surface2 px-3 py-2 text-sm">Fresadora F-1</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="rounded-xl bg-green px-2 py-3 font-display text-sm tracking-widest text-white sm:px-3 sm:text-base">Pañol</div>
+                <div class="rounded-xl bg-blue px-2 py-3 font-display text-sm tracking-widest text-white sm:px-3 sm:text-base">Mant.</div>
+                <div class="col-span-2 rounded-xl bg-orange px-3 py-3 font-display tracking-widest text-white">Producción</div>
+                <div class="col-span-2 rounded-xl bg-purple px-3 py-3 font-display tracking-widest text-white">Calidad</div>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">Inicio de sesión</h3>
+          <p>Puestos y paneles piden <strong>usuario</strong> (N° de operario) y <strong>PIN</strong>. El sistema comprueba que esa persona exista, que el PIN coincida y que tenga habilitada el área. Si no tiene permiso, el mensaje es "Ese usuario no tiene acceso a esta área".</p>
+          <ol class="space-y-3">
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">1</span><div><div class="font-semibold text-ink">Elegí el destino</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Tocá la máquina (puesto) o el panel de área (Pañol, Mantenimiento, Producción, Calidad).</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">2</span><div><div class="font-semibold text-ink">Ingresá usuario y PIN</div><p class="mt-0.5 text-sm leading-relaxed text-muted">El usuario es el número de operario cargado en el sistema (ej. OP 121). El PIN es personal.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">3</span><div><div class="font-semibold text-ink">Ingresar</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Si los datos son correctos y el acceso está habilitado, entras al módulo. Con "Salir" o "Cambiar operario" volvés a identificar a otra persona.</p></div></li>
+          </ol>
+
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-orange-bg border-orange-bd text-ink">
+            <div class="mb-1 font-semibold text-orange">Usuario administrador</div>
+            <div class="text-ink/90">El usuario <span class="font-mono font-semibold">admin</span> no opera máquinas ni paneles de área: entra únicamente a la gestión de operarios (alta, baja y tildes de acceso). El PIN inicial de arranque es el que se configuró al instalar el sistema; debe cambiarse y no compartirse.</div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">Permisos por área</h3>
+          <p>Cada operario tiene tildes independientes. Se marcan al darlo de alta o después, desde Operarios:</p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <div class="flex flex-col gap-1 border-b border-border py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Operador (máquina)</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Puesto de trabajo</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Pañol</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Panel pañol</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Mantenimiento</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Panel mantenimiento</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Producción</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Panel producción</div></div>
+              <div class="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Calidad</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Panel calidad</div></div>
+            </div>
+            <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-blue-bg/60 border-blue/20 text-ink">
+              <div class="mb-1 font-semibold text-blue">Compatibilidad</div>
+              <div class="text-ink/90">Los operarios cargados antes de existir los tildes conservan acceso a Producción y a Operador, salvo que se los quite a propósito. Pañol, Mantenimiento y Calidad sí requieren el tilde explícito.</div>
+            </div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">Códigos QR de máquina</h3>
+          <p>En Pañol → Admin → QR se genera un código por máquina. Impreso y pegado en el puesto, al escanearlo abre el S.I.G. directo en esa máquina (<span class="font-mono text-xs">?maquina=Nombre</span>), sin pasar por la lista del inicio.</p>
+          <div class="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
+            <i data-lucide="qr-code" class="mt-0.5 h-8 w-8 shrink-0 text-green"></i>
+            <p class="text-sm text-muted">Recomendación: un QR por máquina, plastificado, junto al visor. El operario escanea, se identifica con su PIN y ya está en su puesto.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PUESTO -->
+      <section id="puesto" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 4</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-green">Puesto de trabajo</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>El puesto es la pantalla del operario en la máquina. Después del login se ve el nombre de la máquina, el N° de operario y seis pestañas: Insumos, Mantenimiento, Producción, Calidad, Documentación y FAQ.</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-bg text-green border-green/30">Insumos</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-bg text-blue border-blue/25">Mant.</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">Prod.</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-purple-bg text-purple border-purple/25">Calidad</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-bg text-green border-green/30">Docs</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-surface2 text-muted border-border">FAQ</span>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">4.1 Pedir insumos</h3>
+          <p>La lista muestra los insumos asignados a esa máquina. Si pañol no asignó ninguno, se ven todos. Con + / − se arma el pedido, se puede agregar una nota y se envía. El pedido queda <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-bg text-amber border-amber/30">Pendiente</span> con máquina, operario, ítems y hora.</p>
+          <ol class="space-y-3">
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">1</span><div><div class="font-semibold text-ink">Marcás cantidades</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Solo se envían los ítems con cantidad mayor a cero. El botón indica el total de unidades.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">2</span><div><div class="font-semibold text-ink">Nota opcional</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Útil para tamaños, urgencia o "dejar en el banco de la máquina X".</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">3</span><div><div class="font-semibold text-ink">Enviar pedido</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Pañol recibe aviso sonoro y toast "NUEVO PEDIDO" si tiene el panel abierto. Si falla la red, el puesto muestra error para reintentar.</p></div></li>
+          </ol>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-green-bg border-border text-ink">
+            <div class="mb-1 font-semibold text-green">Cuando pañol entrega</div>
+            <div class="text-ink/90">Si el puesto sigue abierto, aparece el aviso "TU PEDIDO ESTÁ LISTO — Ya fue entregado en [máquina]". No es una notificación push con el celular bloqueado: funciona mientras la pantalla del puesto está activa.</div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">4.2 Solicitar mantenimiento</h3>
+          <p>Se elige un tipo de falla de la lista que carga Mantenimiento (eléctrica, mecánica, hidráulica, ruido, vibración, temperatura, error CNC, etc.) y se puede ampliar con una descripción. Al enviar, el equipo de mantenimiento recibe "NUEVA SOLICITUD".</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">4.3 Cargar producción del turno</h3>
+          <p>Hay dos subpestañas: Cargar y Últimos 2 turnos. Arriba puede aparecer un banner de entrega de turno del último registro de esa máquina (pendientes, minutos parados, observaciones).</p>
+          <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+            <h3 class="font-display text-xl tracking-[0.1em] text-ink">Datos generales</h3>
+            <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-muted">
+              <li>Fecha y turno: Mañana 06:00–14:30 · Tarde 14:30–23:00 · Noche 23:00–06:00.</li>
+              <li>Máquina: en el puesto viene preseleccionada la del QR / lista.</li>
+              <li>Piezas: se tildan las configuradas para esa máquina o se agrega un número a mano.</li>
+            </ul>
+          </div>
+          <p>Por cada pieza se carga producido IZQ y DER, y debajo SCRAP, FUNDICIÓN y PENDIENTE (también por lado). El OK se calcula solo: producido menos esas tres categorías.</p>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-red-bg border-red/30 text-ink">
+            <div class="mb-1 font-semibold text-red">Obligatorio: registrar cada pieza descartada</div>
+            <div class="text-ink/90">Si anotás 3 SCRAP, tenés que cargar el detalle de esas 3 con "+ registrar N° de pieza y motivo". Lo mismo para fundición y pendiente. El sistema no deja guardar si el número del recuadro no coincide con la cantidad de registros. El motivo se elige de las listas que carga Producción en Config.</div>
+          </div>
+          <p><strong>Piezas por hora:</strong> una celda por hora del turno. La suma debe coincidir con un solo lado (el mayor entre izq. y der. de cada pieza), no con la suma de ambos. El botón "no funcionó" excluye esa hora del tiempo planificado del OEE (arranque tarde, corte, etc.).</p>
+          <p><strong>Máquina parada:</strong> minutos por motivo (TPM, cambio de herramienta, alarmas, etc.). El total no puede superar la duración del turno. Observaciones al pie, y Guardar producción.</p>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-orange-bg border-orange-bd text-ink">
+            <div class="mb-1 font-semibold text-orange">Validaciones al guardar</div>
+            <div class="text-ink/90">Al menos una pieza; nada negativo; scrap + fundición + pendiente no puede superar lo producido; paradas dentro del turno; fecha y máquina completas. Si algo falla, la lista de errores aparece en rojo arriba del botón.</div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">4.4 Planilla de control (Calidad en el puesto)</h3>
+          <p>Se busca la pieza por código, se elige la planilla (puede haber más de una) y se abre como columna. Se pueden tener varias planillas abiertas a la vez, una al lado de la otra. El avance queda atado a plantilla + máquina + operario: otro operario no ve ni pisa lo que quedó a medio cargar.</p>
+          <ol class="space-y-3">
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">1</span><div><div class="font-semibold text-ink">N° de pieza inicial</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Es obligatorio antes de agregar filas. Queda bloqueado cuando ya hay piezas cargadas.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">2</span><div><div class="font-semibold text-ink">Agregar pieza</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Cada fila es una pieza física. El número se incrementa solo. Las medidas que no aplican a esa posición (1ª, 3ª, 6ª…) no se piden.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">3</span><div><div class="font-semibold text-ink">Cargar medidas</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Numéricas: el recuadro se pone verde dentro de tolerancia y rojo fuera. Tapón P-NP: OK / NO OK. Comentario opcional por pieza.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">4</span><div><div class="font-semibold text-ink">N° final y enviar</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Al terminar el turno se completa el N° final y se envía. Calidad lo recibe como "enviado". El avance se autoguarda mientras tanto.</p></div></li>
+          </ol>
+          <p>En cotas críticas (las que Calidad marcó así) aparece un mini gráfico de variación del turno y el <strong>Cpk histórico de esa máquina</strong>. Verde ≥ 1,33 · ámbar ≥ 1,00 · rojo &lt; 1,00.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">4.5 Documentación y FAQ</h3>
+          <p><strong>Docs:</strong> se busca la pieza y se abre el PDF que subió Calidad (plano, hoja de datos, instrucción). Se abre en una pestaña nueva.</p>
+          <p><strong>FAQ:</strong> fallas conocidas de esa máquina, cargadas por Mantenimiento o Producción. Solo lectura en el puesto: el operario consulta título y solución, no las edita.</p>
+        </div>
+      </section>
+
+      <!-- PANOL -->
+      <section id="panol" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 5</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-green">Panel Pañol</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>Destinado a quien prepara y entrega insumos. Al entrar con un usuario con tilde Pañol se ven cinco pestañas: Pedidos, Stock, Estadísticas, Config y Admin. Un globo rojo y un sonido avisan cada pedido nuevo mientras el panel está abierto.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">5.1 Pedidos — el circuito</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-bg text-amber border-amber/30">Pendiente</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-bg text-blue border-blue/25">Preparando</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-bg text-green border-green/30">Listo</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-surface2 text-muted border-border">Entregado</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-red-bg text-red border-red/25">Cancelado</span>
+          </div>
+          <p>Cada tarjeta muestra máquina, operario, hora, código y cantidad de cada ítem, y la nota. Las acciones van en secuencia:</p>
+          <ol class="space-y-3">
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">1</span><div><div class="font-semibold text-ink">Preparar</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Pendiente → Preparando. El pedido ya está en manos de pañol.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">2</span><div><div class="font-semibold text-ink">Listo para entregar</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Preparando → Listo. El kit está armado.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">3</span><div><div class="font-semibold text-ink">Marcar entregado</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Listo → Entregado. En ese momento se descuenta el stock de cada insumo (no se puede deshacer desde esta pantalla). El puesto recibe el aviso de entrega.</p></div></li>
+          </ol>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-red-bg border-red/30 text-ink">
+            <div class="mb-1 font-semibold text-red">Cancelar</div>
+            <div class="text-ink/90">Se puede cancelar en pendiente, preparando o listo. Un cancelado no descuenta stock y no entra en las estadísticas de consumo.</div>
+          </div>
+          <p>La vista se parte en Activos (todo lo no entregado ni cancelado) e Historial (entregados).</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">5.2 Stock</h3>
+          <p>Ajuste rápido + / − o tipeo del stock actual, y stock mínimo por insumo. Si el actual está en o por debajo del mínimo, la tarjeta se marca "Stock bajo" y arriba hay un recuadro rojo con el listado. El buscador filtra por código o descripción.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">5.3 Estadísticas</h3>
+          <p>Trae el historial completo de pedidos (más allá de los 60 días que se sincronizan por defecto). Filtros por máquina y por período (todo, este mes, mes anterior, 3 meses, o un mes puntual).</p>
+          <ul class="list-disc space-y-1 pl-5 text-sm text-muted">
+            <li>Totales: pedidos, entregados, unidades gastadas.</li>
+            <li>Insumos más consumidos (solo entregados) con barras.</li>
+            <li>Pedidos por máquina.</li>
+            <li>Si se deja una sola máquina seleccionada, el detalle de consumo de esa máquina.</li>
+            <li>Exportar a Excel: hojas "Insumos más retirados" y "Pedidos por máquina".</li>
+          </ul>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">5.4 Config</h3>
+          <ul class="list-disc space-y-1 pl-5 text-sm text-muted">
+            <li><strong>PIN de área:</strong> mínimo 4 caracteres, con confirmación. Es el PIN de panel (legado / emergencia), distinto del PIN personal del operario.</li>
+            <li><strong>Insumos por máquina:</strong> se elige la máquina y se tildan los insertos que debe ver el puesto. "Todos" / "Ninguno". Si no hay ninguno asignado, el puesto muestra el catálogo completo.</li>
+          </ul>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">5.5 Admin</h3>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <div class="mb-2 flex items-center gap-2 text-green">
+                <i data-lucide="package" class="h-4 w-4"></i>
+                <h3 class="font-display text-xl tracking-[0.1em] text-ink">Máquinas e insumos</h3>
+              </div>
+              <p class="text-sm text-muted">Alta y baja de máquinas. Alta de insumos con código, descripción, stock inicial y stock mínimo. Se puede editar stock y mínimo desde acá o desde la pestaña Stock.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <div class="mb-2 flex items-center gap-2 text-green">
+                <i data-lucide="qr-code" class="h-4 w-4"></i>
+                <h3 class="font-display text-xl tracking-[0.1em] text-ink">QR de puesto</h3>
+              </div>
+              <p class="text-sm text-muted">Seleccioná la máquina, se genera el QR y se imprime para pegarlo en el puesto. El texto del código apunta directo a esa máquina.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MANTENIMIENTO -->
+      <section id="mantenimiento" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 6</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-blue">Panel Mantenimiento</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>Recibe las solicitudes del piso. Pestañas: Solicitudes, Estadísticas, FAQ, Tipos y PIN. Toast y sonido "NUEVA SOLICITUD" cuando entra una mientras el panel está abierto.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">6.1 Solicitudes</h3>
+          <p>Filtro Pendientes / Recibidos. Cada tarjeta trae máquina, tipo de falla, descripción, fecha y hora. Con <strong>Recibido</strong> se cierra el pendiente y queda la marca de cuándo se tomó.</p>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-orange-bg border-orange-bd text-ink">
+            <div class="mb-1 font-semibold text-orange">Alerta de falla recurrente</div>
+            <div class="text-ink/90">Si la misma máquina tuvo el mismo tipo de falla 2 o más veces en los últimos 15 días, aparece un recuadro ámbar arriba de la lista. Sirve para no tratar como "puntual" lo que ya es crónico (ATC, hidráulica, etc.) y pasar a acción de fondo: FAQ, TPM, pedido de repuesto.</div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">6.2 Estadísticas</h3>
+          <p>Carga el historial completo. Filtro por máquina y período, igual que pañol.</p>
+          <ul class="list-disc space-y-1 pl-5 text-sm text-muted">
+            <li>Totales: fallas, pendientes, recibidas.</li>
+            <li>Tipos más frecuentes (Pareto).</li>
+            <li>Fallas por máquina y detalle si hay una sola seleccionada.</li>
+            <li>Excel: "Por tipo", "Por máquina" y "Detalle" (fecha, máquina, tipo, estado, observaciones).</li>
+          </ul>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">6.3 FAQ de fallas conocidas</h3>
+          <p>Se elige máquina, se pone un título (ej. "Falla ATC") y la descripción / solución. Queda visible para el operario en el puesto de esa máquina y también se puede cargar desde Producción. Se filtra por máquina y se puede eliminar.</p>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-blue-bg/60 border-blue/20 text-ink">
+            <div class="mb-1 font-semibold text-blue">Para qué sirve</div>
+            <div class="text-ink/90">Cada vez que un técnico resuelve algo no obvio, 2 minutos en el FAQ evitan el próximo llamado idéntico. Es conocimiento de planta, no un instructivo genérico.</div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">6.4 Tipos de falla y PIN</h3>
+          <p>Los tipos que ve el operario al pedir mantenimiento se editan acá (agregar / eliminar). El PIN de área se cambia con mínimo 4 caracteres y confirmación.</p>
+        </div>
+      </section>
+
+      <!-- PRODUCCION -->
+      <section id="produccion" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 7</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-orange">Panel Producción</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>La carga del turno se hace en el puesto. Este panel es de supervisión: ver, comparar, exportar y configurar. La leyenda lo dice: "La carga se realiza desde cada puesto de trabajo".</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">Inicio</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">Registros</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">OEE</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">Operarios</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">Descartes</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">Reporte</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">FAQ</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">Config</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-orange-bg text-orange border-orange-bd">Backup</span>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">7.1 Inicio</h3>
+          <p>Resumen inmediato: OEE de hoy, OEE de los últimos 7 días, piezas de hoy, mejor máquina y máquina a vigilar (7 días). Solo entra en el promedio el turno que tiene tiempo de ciclo cargado en la pieza.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">7.2 Registros</h3>
+          <p>Listado de turnos con filtros por máquina, operario, turno y fecha. Cada tarjeta muestra pieza(s), producido IZQ/DER, scrap, fundición, pendiente y OK. Al expandir: barras de Disponibilidad / Rendimiento / Calidad, OEE total, gráfico de piezas por hora, paradas y observaciones.</p>
+          <p>Si el período pide más de 30 días, el sistema trae el historial completo una vez (por defecto solo sincroniza el último mes de producción).</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">7.3 Dashboard OEE</h3>
+          <p>Período 7 / 30 / 90 días o todo, y filtro de máquina.</p>
+          <ul class="list-disc space-y-1 pl-5 text-sm text-muted">
+            <li>Mejor máquina y máquina a mejorar.</li>
+            <li>Tendencia diaria de OEE.</li>
+            <li>Desglose por máquina (turnos, turnos con OEE calculable, las tres palancas).</li>
+            <li>Pareto de paradas (minutos por motivo) — no depende del tiempo de ciclo.</li>
+            <li>Excel: "Por máquina", "Tendencia diaria", "Paradas".</li>
+          </ul>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-orange-bg border-orange-bd text-ink">
+            <div class="mb-1 font-semibold text-orange">Sin tiempo de ciclo no hay OEE real</div>
+            <div class="text-ink/90">Si hay turnos pero ninguna pieza tiene ciclo en Config → Piezas, el panel avisa y el Rendimiento queda en cero. Cargar el ciclo (en segundos) es el paso que habilita el indicador.</div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">7.4 Operarios (métricas)</h3>
+          <p>Turnos cargados por cada N° de operario, piezas totales y OEE promedio. No mezcla pedidos a pañol ni avisos de mantenimiento: es solo producción.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">7.5 Descartes</h3>
+          <p>Vista compartida con Calidad. Filtro por máquina y pieza. Contadores separados de SCRAP, PENDIENTE y FUNDICIÓN, y el listado con N° de pieza, motivo, máquina, turno, operario y hora. Acá se analiza; el alta se hace en la carga del puesto.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">7.6 Reporte semanal</h3>
+          <p>Últimos 7 días, una tarjeta por máquina con turnos, piezas, OEE, disponibilidad, rendimiento y calidad. Botón para descargar el Excel del reporte.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">7.7 FAQ</h3>
+          <p>La misma herramienta de fallas conocidas que usa Mantenimiento, disponible también desde Producción para que supervisión cargue lo que ve en el piso.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">7.8 Config</h3>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-orange">PIN</p>
+              <p class="mt-1 text-sm text-muted">PIN de área, mínimo 4 caracteres, con confirmación.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-orange">Operarios</p>
+              <p class="mt-1 text-sm text-muted">Alta, PIN, tildes de acceso y baja. Ver capítulo 9.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-orange">Piezas</p>
+              <p class="mt-1 text-sm text-muted">Número de pieza por máquina y tiempo de ciclo en segundos. El ciclo alimenta el Rendimiento del OEE. Se puede editar después.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-orange">Motivos</p>
+              <p class="mt-1 text-sm text-muted">Motivos de parada (TPM, cambio de herramienta, alarmas…). Motivos de descarte en tres listas: SCRAP, Pendiente y Fundición. Sin esas listas el operario no puede registrar el detalle.</p>
+            </div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">7.9 Backup</h3>
+          <p>Ver capítulo 11. Descarga un JSON con toda la base (pedidos, mantenimientos, producción, configuración, FAQ, calidad, pines).</p>
+        </div>
+      </section>
+
+      <!-- CALIDAD -->
+      <section id="calidad" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 8</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-purple">Panel Calidad</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>Calidad define qué se mide, recibe lo que cargó el piso, certifica, publica documentos y mira descartes. Pestañas: Plantillas, Recibidos (con contador de no revisados), Estadísticas, Documentación y Descartes.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">8.1 Plantillas de control</h3>
+          <p>Una plantilla = una pieza + un nombre (ej. "Control dimensional") + las medidas. Puede haber varias plantillas por código de pieza.</p>
+          <ol class="space-y-3">
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">1</span><div><div class="font-semibold text-ink">Código y nombre</div><p class="mt-0.5 text-sm leading-relaxed text-muted">El código se guarda en mayúsculas (ej. F09244). El nombre es lo que ve el operario al elegir planilla.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">2</span><div><div class="font-semibold text-ink">Agregar medidas</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Numérica: etiqueta, nominal, mínimo y máximo de tolerancia. Tapón P-NP: pasa / no pasa, sin números.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">3</span><div><div class="font-semibold text-ink">Frecuencia</div><p class="mt-0.5 text-sm leading-relaxed text-muted">"Controlar todas las piezas" o una lista de posiciones (ej. 1,3,6,9). El 1 es la primera pieza cargada de esa planilla, no un caso especial.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">4</span><div><div class="font-semibold text-ink">Cota crítica</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Solo en numéricas. Activa gráfico de variación y Cpk en el puesto, en Recibidos y en el PDF.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">5</span><div><div class="font-semibold text-ink">Guardar</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Se puede editar después (el código y las medidas) o eliminar la plantilla.</p></div></li>
+          </ol>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-purple-bg border-purple/25 text-ink">
+            <div class="mb-1 font-semibold text-purple">Plantillas viejas con "frecuencia cada N"</div>
+            <div class="text-ink/90">Siguen funcionando: se interpretan como "cada N piezas". Las nuevas usan el tilde "todas" o la lista de posiciones.</div>
+          </div>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">8.2 Recibidos</h3>
+          <p>Dos modos: lista de planillas y buscar un N° de pieza.</p>
+          <p><strong>Lista:</strong> filtros por pieza, máquina y rango de fechas. Las no revisadas llevan etiqueta "Nuevo" y el inicio muestra el globo. Al abrir: certificado en pantalla, gráfico/Cpk de cotas críticas, cada pieza con medidas en verde/rojo y comentarios.</p>
+          <ul class="list-disc space-y-1 pl-5 text-sm text-muted">
+            <li>Excel de esa planilla (una fila por pieza, columnas = medidas + comentario).</li>
+            <li>Certificado PDF A4: encabezado, rango de N°, desvíos, gráficos de cotas críticas, detalle pieza a pieza y renglón "Revisado por Calidad / Fecha".</li>
+            <li>Marcar Revisado: saca el pendiente del contador.</li>
+          </ul>
+          <p><strong>Buscar pieza:</strong> se escribe el N° (ej. 105), opcionalmente pieza y máquina, y aparece la trayectoria: cada vez que esa pieza física se midió, con valores y comentarios.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">8.3 Estadísticas</h3>
+          <p>Filtro por pieza y máquina sobre planillas enviadas. Totales de piezas medidas y % dentro de tolerancia (verde ≥ 95 %, ámbar ≥ 85 %, rojo por debajo). Debajo, ranking de medidas que más se van de tolerancia, con barra de porcentaje.</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">8.4 Documentación</h3>
+          <p>No se sube el archivo al servidor de la app: se publica un PDF en Google Drive (o cualquier link), se comparte con "cualquier persona con el enlace" y se pega acá. Campos: código de pieza, nombre del documento, URL que empiece con http/https.</p>
+          <p>El operario lo ve en el puesto, pestaña Docs, agrupado por pieza. Desde Calidad se puede abrir o eliminar el registro (eso no borra el archivo en Drive).</p>
+
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">8.5 Descartes</h3>
+          <p>La misma vista que en Producción: conteo y listado de scrap / pendiente / fundición con N° y motivo. Calidad la usa para cruzar desvíos de planilla con piezas rechazadas en el turno.</p>
+        </div>
+      </section>
+
+      <!-- OPERARIOS -->
+      <section id="operarios" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 9</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-ink">Operarios y permisos</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>La administración de personas está en Config de Producción (pestaña Operarios) y también es la única pantalla a la que entra el usuario <span class="font-mono">admin</span> desde cualquier panel.</p>
+          <ol class="space-y-3">
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">1</span><div><div class="font-semibold text-ink">Alta</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Usuario (ej. OP 121), PIN, y tildes: Operador, Pañol, Mantenimiento, Producción, Calidad. Se puede marcar más de un área si la persona cubre varios roles.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">2</span><div><div class="font-semibold text-ink">Durante la vida útil</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Los tildes se pueden prender y apagar sin borrar al operario. El PIN se ve enmascarado.</p></div></li>
+            <li class="print-avoid flex gap-3"><span class="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green text-base text-white">3</span><div><div class="font-semibold text-ink">Baja</div><p class="mt-0.5 text-sm leading-relaxed text-muted">Eliminar quita el acceso. El usuario admin no se puede borrar desde esta lista.</p></div></li>
+          </ol>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-red-bg border-red/30 text-ink">
+            <div class="mb-1 font-semibold text-red">PIN personal ≠ PIN de área</div>
+            <div class="text-ink/90">Cada persona tiene su PIN. Además, Pañol, Mantenimiento y Producción tienen un PIN de área (legado) que se cambia en la pestaña PIN de cada panel. No los mezcles: el login cotidiano es usuario + PIN personal.</div>
+          </div>
+          <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+            <h3 class="font-display text-xl tracking-[0.1em] text-ink">Regla práctica de accesos</h3>
+            <div class="mt-3">
+              <div class="flex flex-col gap-1 border-b border-border py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Solo corre máquina</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Operador</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Pañolero</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Pañol</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Técnico de mantenimiento</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Mantenimiento</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Supervisor de producción</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Producción (+ Operador si también carga)</div></div>
+              <div class="flex flex-col gap-1 border-b border-border py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Inspector de calidad</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">Calidad</div></div>
+              <div class="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><div class="min-w-0 text-sm text-ink">Quien da de alta gente</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">usuario admin</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- OEE -->
+      <section id="oee" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 10</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-orange">Cómo se calcula el OEE</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>OEE (Overall Equipment Effectiveness) es el producto de tres palancas. El S.I.G. las calcula por turno, por máquina y con las piezas cargadas. Semáforo:
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-bg text-green border-green/30">≥ 75 %</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-bg text-amber border-amber/30">50–74 %</span>
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-red-bg text-red border-red/25">&lt; 50 %</span>
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <i data-lucide="gauge" class="mb-2 h-5 w-5 text-blue"></i>
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">Disponibilidad</h3>
+              <p class="mt-2 font-mono text-xs text-muted">tiempo disponible / tiempo planificado</p>
+              <p class="mt-2 text-sm text-muted">Planificado = duración del turno menos las horas marcadas "no funcionó". Disponible = planificado menos minutos de parada.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <i data-lucide="bar-chart-3" class="mb-2 h-5 w-5 text-orange"></i>
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">Rendimiento</h3>
+              <p class="mt-2 font-mono text-xs text-muted">tiempo ideal / tiempo disponible</p>
+              <p class="mt-2 text-sm text-muted">Tiempo ideal = piezas producidas × ciclo (segundos) de esa pieza en esa máquina. Se recorta en 100 %: no infla el OEE si se produjo de más.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <i data-lucide="clipboard-check" class="mb-2 h-5 w-5 text-green"></i>
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">Calidad</h3>
+              <p class="mt-2 font-mono text-xs text-muted">piezas OK / piezas producidas</p>
+              <p class="mt-2 text-sm text-muted">OK = producido − scrap − fundición − pendiente, por cada pieza del turno. No puede ser negativo.</p>
+            </div>
+          </div>
+          <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+            <p class="font-display text-lg tracking-widest text-orange">OEE = Disponibilidad × Rendimiento × Calidad</p>
+            <p class="mt-2 text-sm text-muted">Turnos Mañana y Tarde: 8,5 h (9 franjas). Noche: 7 h (8 franjas). Si una pieza no tiene ciclo, ese turno se marca "sin datos de ciclo" y no entra al promedio de OEE (el rendimiento se vería 0 % de forma engañosa).</p>
+          </div>
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">Cpk (capacidad del proceso)</h3>
+          <p>En cotas críticas, con al menos dos mediciones numéricas. Cpk mira qué tan centrada y estable está la medida respecto de la tolerancia:</p>
+          <p class="font-mono text-xs text-muted">Cpk = mínimo de (tol. máx − media) / 3σ  y  (media − tol. mín) / 3σ</p>
+          <p>El valor que se muestra en el puesto y en el certificado es el <strong>Cpk histórico de esa máquina y plantilla</strong>: junta las planillas enviadas y la que está en curso, para no "reiniciar" el indicador cada turno. Interpretación habitual: ≥ 1,33 proceso capaz · 1,00–1,33 justo · &lt; 1 no capaz.</p>
+        </div>
+      </section>
+
+      <!-- BACKUP -->
+      <section id="backup" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 11</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-ink">Backup y continuidad</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <p>El S.I.G. persiste en la nube (Firebase) y se sincroniza entre dispositivos. Aun así, Producción → Backup permite bajar una copia propia, independiente del plan de la nube.</p>
+          <div class="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
+            <i data-lucide="database" class="mt-0.5 h-6 w-6 shrink-0 text-orange"></i>
+            <div class="text-sm text-muted">El archivo se llama <span class="font-mono text-ink">SGI_backup_AAAA-MM-DD-hh-mm-ss.json</span> y contiene pedidos, mantenimientos, registros de producción, máquinas, insumos, asignaciones, tipos de falla, operarios, piezas, motivos, FAQ, pines, plantillas y documentos de calidad, descartes y registros de control.</div>
+          </div>
+          <div class="print-avoid rounded-xl border px-4 py-3 text-sm leading-relaxed bg-orange-bg border-orange-bd text-ink">
+            <div class="mb-1 font-semibold text-orange">Frecuencia recomendada</div>
+            <div class="text-ink/90">Una vez por semana, y siempre antes de una limpieza masiva de datos o de un cambio grande de configuración. Guardar el JSON en un Drive de la empresa, no solo en el teléfono de una persona.</div>
+          </div>
+          <h3 class="font-display text-xl tracking-[0.1em] text-ink">Exportaciones Excel puntuales</h3>
+          <ul class="list-disc space-y-1 pl-5 text-sm text-muted">
+            <li>Pañol → Estadísticas</li>
+            <li>Mantenimiento → Estadísticas</li>
+            <li>Producción → OEE y Reporte semanal</li>
+            <li>Calidad → una planilla (control) y el PDF de certificado</li>
+          </ul>
+          <p>Los nombres de archivo llevan prefijo SGI_ o SIG_ y la fecha. Excel limita el nombre de cada hoja a 31 caracteres; el sistema ya lo recorta.</p>
+        </div>
+      </section>
+
+      <!-- PRACTICAS -->
+      <section id="practicas" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 12</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-green">Buenas prácticas de planta</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">En el puesto</h3>
+              <ul class="mt-3 list-disc space-y-1.5 pl-5 text-sm text-muted">
+                <li>Identificarse con el N° propio. No prestar el PIN: la trazabilidad (pedido, turno, planilla) queda a nombre de quien entró.</li>
+                <li>Pedir insumos con la máquina todavía en ciclo, no al quedarse sin inserto.</li>
+                <li>Cargar paradas en el momento, no de memoria al final del turno.</li>
+                <li>Si hay scrap, registrar N° y motivo ahí nomás.</li>
+                <li>Completar N° inicial al arrancar el control y N° final antes de enviar.</li>
+                <li>Leer el banner de entrega de turno: pendientes y paradas del anterior.</li>
+              </ul>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">En los paneles</h3>
+              <ul class="mt-3 list-disc space-y-1.5 pl-5 text-sm text-muted">
+                <li>Pañol: dejar el panel abierto en el puesto de despacho para oír los pedidos nuevos.</li>
+                <li>Entregar descuenta stock: verificar cantidades antes del último botón.</li>
+                <li>Mantenimiento: si aparece falla recurrente, no solo "recibir": cargar FAQ o pedir paro programado.</li>
+                <li>Producción: mantener ciclos de pieza actualizados; un ciclo viejo miente el rendimiento.</li>
+                <li>Calidad: marcar Revisado para que el globo del inicio refleje lo que falta de verdad.</li>
+                <li>Admin: un QR por máquina, operarios con el mínimo de tildes necesario.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 rounded-2xl border border-border bg-green-bg p-4">
+            <i data-lucide="leaf" class="mt-0.5 h-6 w-6 shrink-0 text-green"></i>
+            <p class="text-sm text-muted"><strong class="text-ink">Dato ambiental accionable:</strong> el ranking de motivos de scrap y el Pareto de paradas son las dos palancas más concretas. Bajar 1 punto de scrap en una pieza pesada ahorra fundición, energía de arranque, inserto y movimiento de viruta. Bajar idle (horas "no funcionó" + paradas) recorta kWh de máquina encendida sin producir.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- GLOSARIO -->
+      <section id="glosario" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 13</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-ink">Glosario</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <div class="print-avoid rounded-2xl border border-border bg-surface p-5" id="glosarioList"></div>
+        </div>
+      </section>
+
+      <!-- SOPORTE -->
+      <section id="soporte" class="print-break scroll-mt-24">
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Capítulo 14</p>
+        <h2 class="font-display mb-6 text-4xl tracking-[0.12em] text-ink">Resolución de problemas</h2>
+        <div class="space-y-5 text-[15px] leading-relaxed text-ink">
+          <div class="print-avoid rounded-2xl border border-border bg-surface p-5" id="soporteList"></div>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <div class="mb-2 text-green"><i data-lucide="bell" class="h-5 w-5"></i></div>
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">Avisos en vivo</h3>
+              <p class="mt-1 text-sm text-muted">Sonido, vibración y toast. Solo con la pestaña abierta. No reemplazan un llamado si la máquina paró.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <div class="mb-2 text-green"><i data-lucide="shield" class="h-5 w-5"></i></div>
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">Identidad</h3>
+              <p class="mt-1 text-sm text-muted">Cada dispositivo entra de forma anónima al servidor; el "quién" de negocio es el operario + PIN.</p>
+            </div>
+            <div class="print-avoid rounded-2xl border border-border bg-surface p-5">
+              <div class="mb-2 text-green"><i data-lucide="file-text" class="h-5 w-5"></i></div>
+              <h3 class="font-display text-xl tracking-[0.1em] text-ink">Este manual</h3>
+              <p class="mt-1 text-sm text-muted">Usá Imprimir / PDF en el encabezado para archivar o entregar una copia en papel o digital.</p>
+            </div>
+          </div>
+          <div class="rounded-3xl bg-dark px-6 py-8 text-center">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-green-hi">E.M.U. SAIC</p>
+            <p class="font-display mt-2 text-3xl tracking-[0.14em] text-white">Fin del manual de uso</p>
+            <p class="mt-2 text-sm text-white/70">S.I.G. · Sistema de Gestión Interna · Documento interno · Septiembre 2026</p>
+            <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <span class="inline-flex items-center gap-1 rounded-full bg-green px-3 py-1 text-xs font-semibold text-white"><i data-lucide="package" class="h-3.5 w-3.5"></i> Pañol</span>
+              <span class="inline-flex items-center gap-1 rounded-full bg-blue px-3 py-1 text-xs font-semibold text-white"><i data-lucide="wrench" class="h-3.5 w-3.5"></i> Mantenimiento</span>
+              <span class="inline-flex items-center gap-1 rounded-full bg-orange px-3 py-1 text-xs font-semibold text-white"><i data-lucide="factory" class="h-3.5 w-3.5"></i> Producción</span>
+              <span class="inline-flex items-center gap-1 rounded-full bg-purple px-3 py-1 text-xs font-semibold text-white"><i data-lucide="flask-conical" class="h-3.5 w-3.5"></i> Calidad</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="mt-16 border-t border-border pt-6 text-center text-xs text-muted">
+        Sistema de Gestión Interna · E.M.U. SAIC · Manual de uso · Documento interno
+        <div class="mt-1">Confidencial — uso exclusivo del personal autorizado</div>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+lucide.createIcons();
+
+const GLOSARIO = [
+  ["S.I.G.", "Sistema de Gestión Interna de E.M.U. SAIC."],
+  ["Puesto", "Pantalla del operario asociada a una máquina."],
+  ["Pañol", "Almacén de insumos (insertos y afines) y su panel."],
+  ["OEE", "Eficacia global del equipo: Disponibilidad × Rendimiento × Calidad."],
+  ["Ciclo", "Tiempo estándar en segundos para producir una pieza en una máquina. Alimenta el Rendimiento."],
+  ["Cpk", "Índice de capacidad: qué tan centrado y estable está un proceso respecto de la tolerancia."],
+  ["Cota crítica", "Medida numérica marcada en la plantilla para gráfico y Cpk."],
+  ["Tapón P-NP", "Control pasa / no pasa (OK / NO OK), sin valor numérico."],
+  ["Scrap", "Pieza descartada. Exige N° y motivo de la lista de Producción."],
+  ["Fundición", "Rechazo atribuible a la pieza de fundición (porosidad, inclusion, etc.)."],
+  ["Pendiente", "Pieza que no se cierra como OK en el turno (retrabajo, espera de decisión)."],
+  ["Hora no contabilizada", "Franja marcada \u201cno funcionó\u201d: sale del tiempo planificado del OEE."],
+  ["FAQ de fallas", "Base de fallas conocidas por máquina, visible en el puesto."],
+  ["Plantilla", "Definición de control: pieza, nombre y medidas."],
+  ["Certificado", "PDF generado desde una planilla enviada, con medidas, gráficos y firma de Calidad."],
+  ["PIN de área", "Clave de panel (Pañol / Mant. / Prod.), distinta del PIN personal."],
+  ["Admin", "Usuario especial que solo gestiona operarios y accesos."],
+];
+const glosarioEl = document.getElementById("glosarioList");
+GLOSARIO.forEach(([t, d], i) => {
+  const row = document.createElement("div");
+  row.className = "flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4" + (i < GLOSARIO.length - 1 ? " border-b border-border" : "");
+  row.innerHTML = `<div class="min-w-0 text-sm text-ink"><span class="font-semibold">${t}</span></div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right"><span class="font-normal">${d}</span></div>`;
+  glosarioEl.appendChild(row);
+});
+
+const SOPORTE = [
+  ["\u201cUsuario o PIN incorrecto\u201d", "Revisar N° y PIN. Mayúsculas del usuario importan tal como se cargó."],
+  ["\u201cEse usuario no tiene acceso a esta área\u201d", "Pedir a admin o a Producción → Operarios que tilden el área."],
+  ["No aparecen insumos en el puesto", "Pañol → Config → Insumos por máquina, o Admin si el catálogo está vacío."],
+  ["No puedo guardar producción", "Leer el recuadro rojo: casi siempre falta el detalle de scrap/fundición/pendiente o no cierra piezas/hora."],
+  ["OEE en \u201c—\u201d o rendimiento 0 %", "Cargar tiempo de ciclo en Producción → Config → Piezas, para esa pieza y máquina."],
+  ["El operario no ve la planilla", "Calidad → Plantillas: código de pieza igual al que busca (se guarda en mayúsculas)."],
+  ["No puedo enviar la planilla", "Falta N° inicial, N° final, o no hay ninguna pieza cargada."],
+  ["No hay motivos en el modal de descarte", "Producción → Config → Motivos descarte, cargar la lista de esa categoría."],
+  ["Estadísticas \u201cincompletas\u201d", "Esperar la carga del historial (el aviso ámbar). Por defecto solo viajan 30 días de producción y 60 de pedidos/mant./calidad."],
+  ["Error al enviar pedido o solicitud", "Conexión. Reintentar; el puesto no da el pedido por enviado si falló."],
+  ["El PDF de Docs no abre", "El link de Drive tiene que ser público (\u201ccualquier persona con el enlace\u201d) y empezar con https."],
+  ["No suena el aviso de pedido nuevo", "El panel tiene que estar abierto. El navegador pide interacción previa para audio en algunos equipos."],
+];
+const soporteEl = document.getElementById("soporteList");
+SOPORTE.forEach(([l, r], i) => {
+  const row = document.createElement("div");
+  row.className = "flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4" + (i < SOPORTE.length - 1 ? " border-b border-border" : "");
+  row.innerHTML = `<div class="min-w-0 text-sm text-ink">${l}</div><div class="min-w-0 text-sm font-semibold text-muted sm:max-w-md sm:text-right">${r}</div>`;
+  soporteEl.appendChild(row);
+});
+lucide.createIcons();
+
+const TOC = [
+  { id: "portada", label: "Portada", group: "Documento" },
+  { id: "indice", label: "Índice", group: "Documento" },
+  { id: "introduccion", label: "1. Introducción", group: "Fundamentos" },
+  { id: "beneficios", label: "2. Beneficios", group: "Fundamentos" },
+  { id: "acceso", label: "3. Acceso y seguridad", group: "Fundamentos" },
+  { id: "puesto", label: "4. Puesto de trabajo", group: "Operación" },
+  { id: "panol", label: "5. Pañol", group: "Operación" },
+  { id: "mantenimiento", label: "6. Mantenimiento", group: "Operación" },
+  { id: "produccion", label: "7. Producción", group: "Operación" },
+  { id: "calidad", label: "8. Calidad", group: "Operación" },
+  { id: "operarios", label: "9. Operarios y permisos", group: "Administración" },
+  { id: "oee", label: "10. Cómo se calcula el OEE", group: "Administración" },
+  { id: "backup", label: "11. Backup y continuidad", group: "Administración" },
+  { id: "practicas", label: "12. Buenas prácticas", group: "Cierre" },
+  { id: "glosario", label: "13. Glosario", group: "Cierre" },
+  { id: "soporte", label: "14. Resolución de problemas", group: "Cierre" },
+];
+
+const GROUPS = ["Documento", "Fundamentos", "Operación", "Administración", "Cierre"];
+const nav = document.getElementById("tocNav");
+GROUPS.forEach((group) => {
+  const wrap = document.createElement("div");
+  const label = document.createElement("p");
+  label.className = "mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-muted";
+  label.textContent = group;
+  wrap.appendChild(label);
+  const ul = document.createElement("ul");
+  ul.className = "space-y-0.5";
+  TOC.filter((t) => t.group === group).forEach((t) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.target = t.id;
+    btn.className = "toc-btn w-full rounded-lg px-2 py-1.5 text-left text-[13px] text-ink hover:bg-surface2";
+    btn.textContent = t.label;
+    btn.addEventListener("click", () => go(t.id));
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+  wrap.appendChild(ul);
+  nav.appendChild(wrap);
+});
+
+const indiceList = document.getElementById("indiceList");
+TOC.filter((t) => t.id !== "portada" && t.id !== "indice").forEach((t) => {
+  const li = document.createElement("li");
+  li.className = "mb-2 break-inside-avoid text-sm";
+  const a = document.createElement("a");
+  a.href = "#" + t.id;
+  a.className = "font-medium text-ink hover:text-green";
+  a.textContent = t.label;
+  li.appendChild(a);
+  indiceList.appendChild(li);
+});
+
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+function openMenu() { sidebar.classList.remove("-translate-x-full"); overlay.classList.remove("hidden"); }
+function closeMenu() { sidebar.classList.add("-translate-x-full"); overlay.classList.add("hidden"); }
+document.getElementById("openMenuBtn").addEventListener("click", openMenu);
+document.getElementById("closeMenuBtn").addEventListener("click", closeMenu);
+overlay.addEventListener("click", closeMenu);
+
+function go(id) {
+  closeMenu();
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function setActive(id) {
+  document.querySelectorAll(".toc-btn").forEach((b) => {
+    if (b.dataset.target === id) {
+      b.classList.add("bg-green-bg", "font-semibold", "text-green");
+      b.classList.remove("text-ink", "hover:bg-surface2");
+    } else {
+      b.classList.remove("bg-green-bg", "font-semibold", "text-green");
+      b.classList.add("text-ink", "hover:bg-surface2");
+    }
+  });
+}
+
+const observer = new IntersectionObserver(
+  (entries) => {
+    const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+    if (vis[0]?.target.id) setActive(vis[0].target.id);
+  },
+  { rootMargin: "-20% 0px -65% 0px", threshold: [0, 0.2, 0.5] }
+);
+TOC.forEach((t) => {
+  const el = document.getElementById(t.id);
+  if (el) observer.observe(el);
+});
+setActive("portada");
+</script>
+</body>
+</html>
