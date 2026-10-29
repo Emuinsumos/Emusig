@@ -4,7 +4,7 @@ import { getDatabase, ref, set, update, get, onValue, off, query, orderByChild, 
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
-import Calibres from "./calibres/Calibres.jsx";
+import Calibres, { InstrumentosOperador, AvisoSolicitudes } from "./calibres/Calibres.jsx";
 
 const QR_CDN = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');`;
@@ -1234,7 +1234,7 @@ function PuestoView({ machineName, machines, insumos, machineInsumos, addPedido,
           <button onClick={() => setOperador(null)} style={{ background:"none", border:"1px solid #fed7aa", borderRadius:6, padding:"4px 10px", color:"#9a6000", cursor:"pointer", fontSize:12 }}>Cambiar operario</button>
         </div>
         <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:20 }}>
-          {[["insumos","📦 INSUMOS"],["mantenimiento","🔧 MANT."],["produccion","🏭 PROD."],["calidad","🧪 CALIDAD"],["documentacion","📄 DOCS"],["faq","❓ FAQ"]].map(([key,lbl]) => {
+          {[["insumos","📦 INSUMOS"],["mantenimiento","🔧 MANT."],["produccion","🏭 PROD."],["calidad","🧪 CALIDAD"],["instrumentos","📏 INSTRUMENTOS"],["documentacion","📄 DOCS"],["faq","❓ FAQ"]].map(([key,lbl]) => {
             const color = key==="insumos"?"var(--green)":key==="mantenimiento"?"#1d4ed8":key==="produccion"?ORANGE:key==="calidad"?"#7C3AED":key==="documentacion"?"#0E7490":"#6B7280";
             return (
               <button key={key} onClick={() => setTab(key)}
@@ -1316,6 +1316,7 @@ function PuestoView({ machineName, machines, insumos, machineInsumos, addPedido,
             motivosFundicion={motivosFundicion||[]}
           />
         )}
+        {tab === "instrumentos" && <InstrumentosOperador maquina={String(operador.numero)} />}
         {tab === "calidad" && (
           <CalidadOperarioView plantillas={calidadPlantillas||[]} registros={calidadRegistros||[]} setRegistro={setCalidadRegistro} operario={operador} maquina={machine.name} />
         )}
@@ -1536,6 +1537,7 @@ function CalidadView({ setView, operarios, setOperarios, plantillas, addPlantill
         </div>
         {mainTab==="plantillas" && <CalidadPlantillasView plantillas={plantillas} addPlantilla={addPlantilla} removePlantilla={removePlantilla} />}
         {mainTab==="recibidos"  && <CalidadRecibidosView registros={registros} plantillas={plantillas} updateRegistro={updateRegistro} />}
+        <AvisoSolicitudes onVer={() => setMainTab("calibres")} />
         {mainTab==="calibres" && <Calibres embebido />}
         {mainTab==="stats"      && <CalidadStatsView registros={registros} plantillas={plantillas} />}
         {mainTab==="documentos" && <CalidadDocumentacionView documentos={documentos} addDocumento={addDocumento} removeDocumento={removeDocumento} />}
