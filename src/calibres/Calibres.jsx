@@ -184,6 +184,7 @@ function CalibresApp({ embebido = false, operario = '', maquinas = [] }) {
         <button className={`tab ${tab === 'panel' ? 'on' : ''}`} onClick={() => setTab('panel')}>
           Vencimientos{nVenc > 0 && <span className="n">{nVenc}</span>}
         </button>
+        <button className={`tab ${tab === 'maquinas' ? 'on' : ''}`} onClick={() => setTab('maquinas')}>Por máquina</button>
         <button className={`tab ${tab === 'calendario' ? 'on' : ''}`} onClick={() => setTab('calendario')}>Calendario</button>
         <button className={`tab ${tab === 'solicitudes' ? 'on' : ''}`} onClick={() => setTab('solicitudes')}>
           Solicitudes{solPend.length > 0 && <span className="n">{solPend.length}</span>}
@@ -198,6 +199,13 @@ function CalibresApp({ embebido = false, operario = '', maquinas = [] }) {
 
       {tab === 'panel' && (
         <Panel lista={lista} porVencer={porVencer} permiso={permiso} activarAvisos={activarAvisos} irAControl={irAControl} solPend={solPend} irASolicitudes={() => setTab('solicitudes')} />
+      )}
+      {tab === 'maquinas' && (
+        <PorMaquina
+          lista={lista} controles={controles} tols={tols} solicitudes={solicitudes} maquinas={listaMaq}
+          irAControl={irAControl} mostrar={mostrar}
+          editar={(id) => { setEditando(id); setTab('instrumentos') }}
+        />
       )}
       {tab === 'calendario' && <Calendario lista={lista} tols={tols} maquinas={listaMaq} irAControl={irAControl} />}
       {tab === 'instrumentos' && (
@@ -1362,6 +1370,121 @@ function Calendario({ lista, tols, maquinas, irAControl }) {
           {atrasados.sort((a, b) => a.vencimiento.localeCompare(b.vencimiento)).map(fila)}
         </>
       )}
+    </>
+  )
+}
+
+// ---------- Por máquina: elegir una máquina, ver sus instrumentos y abrir la ficha completa ----------
+function PorMaquina({ lista, controles, tols, solicitudes, maquinas, irAControl, editar, mostrar }) {
+  const [maq, setMaq] = useState(null)   // null = pantalla de máquinas; '__sin' = sin asignar
+  const [sel, setSel] = useState('')     // id del instrumento abierto
+
+  const activos = lista.filter((i) => i.activo !== false)
+  const nombres = opcionesMaq(maquinas, lista)
+  const deMaq = (m) => activos.filter((i) => (m === '__sin' ? !i.maquina : i.maquina === m))
+  const peor = (items) => items.reduce((p, i) => Math.min(p, estadoDe(i).orden), 9)
+  const claseDe = (items) => (!items.length ? 'na' : peor(items) <= 1 ? 'bad' : peor(items) <= 3 ? 'warn' : 'ok')
+
+  // ---- pantalla 1: tarjetas de máquinas ----
+  if (maq === null) {
+    const sin = deMaq('__sin')
+    const tarjeta = (clave, titulo, items) => (
+      <button key={clave} className={`maq-card ${claseDe(items)}`} onClick={() => { setMaq(clave); setSel('') }}>
+        <span className="maq-nombre">{titulo}</span>
+        <b>{items.length}</b>
+        <span className="maq-sub">
+          {items.length === 0 ? 'sin instrumentos' : `${items.filter((i) => estadoDe(i).orden <= 3).length} para atender`}
+        </span>
+      </button>
+    )
+    return (
+      <>
+        <div className="card">
+          <h2>Instrumentos por máquina</h2>
+          <div className="nota" style={{ marginTop: 0 }}>
+            Tocá una máquina para ver sus instrumentos. El color indica el peor estado: rojo (vencido o rechazado), amarillo (vence en 7 días o menos), verde (todo vigente).
+          </div>
+        </div>
+        <div className="maq-grid">
+          {nombres.map((m) => tarjeta(m, m, deMaq(m)))}
+          {sin.length > 0 && tarjeta('__sin', 'Sin máquina', sin)}
+        </div>
+        {nombres.length === 0 && sin.length === 0 && <div className="card vacio">Todavía no hay instrumentos cargados.</div>}
+      </>
+    )
+  }
+
+  const items = deMaq(maq).sort((a, b) => estadoDe(a).orden - estadoDe(b).orden || a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
+  const titulo = maq === '__sin' ? 'Sin máquina asignada' : `Máquina ${maq}`
+  const inst = sel ? lista.find((i) => i.id === sel) : null
+
+  // ---- pantalla 3: ficha completa ----
+  if (inst) {
+    const e = estadoDe(inst)
+    const hist = Object.entries(controles).map(([id, v]) => ({ ...v, id })).filter((x) => x.instrumentoId === inst.id).sort((a, b) => (b.creado || 0) - (a.creado || 0))
+    const pend = Object.values(solicitudes).filter((s) => s.instrumentoId === inst.id && s.estado === 'pendiente')
+    const ultimo = hist[0]
+    return (
+      <>
+        <button className="btn small sec" onClick={() => setSel('')} style={{ marginBottom: 10 }}>◀ {titulo}</button>
+        <div className="card">
+          <div className="row">
+            <div className="mono" style={{ fontSize: 24, fontWeight: 700 }}>{inst.codigo}</div>
+            <span className="sp" />
+            <span className={`estado ${e.clase}`}>{e.texto}</span>
+          </div>
+          <FichaDatos inst={inst} tols={tols} />
+          {pend.length > 0 && (
+            <div className="nota" style={{ color: 'var(--warn)' }}>
+              {pend.length} solicitud{pend.length > 1 ? 'es' : ''} de revisión pendiente{pend.length > 1 ? 's' : ''}: {pend.map((s) => `${s.motivo} (${s.solicitante || '—'})`).join(', ')}
+            </div>
+          )}
+          <div className="row" style={{ marginTop: 12 }}>
+            <button className="btn" onClick={() => irAControl(inst.id)}>Registrar control</button>
+            {ultimo && <button className="btn sec" onClick={() => certificadoPDF(ultimo, inst).catch(() => mostrar('No se pudo generar el PDF'))}>Último certificado</button>}
+            <button className="btn sec" onClick={() => etiquetasPDF([inst]).catch(() => mostrar('No se pudo generar la etiqueta'))}>Etiqueta</button>
+            <button className="btn sec" onClick={() => editar(inst.id)}>Editar</button>
+          </div>
+        </div>
+        <div className="card">
+          <h2>Historial de controles ({hist.length})</h2>
+          {hist.length === 0 && <div className="nota" style={{ marginTop: 0 }}>Todavía no tiene controles registrados.</div>}
+          {hist.slice(0, 10).map((h) => (
+            <div className="alerta" key={h.id}>
+              <span>
+                {fmt(h.fecha)} · {h.responsable || '—'}
+                {h.errorMax != null && <span style={{ color: 'var(--muted)' }}> · error máx. {Number(h.errorMax).toFixed(5)} mm</span>}
+              </span>
+              <span className={`estado ${h.resultado === 'Aprobado' ? 'ok' : 'bad'}`}>{String(h.resultado || '').toUpperCase()}</span>
+            </div>
+          ))}
+          {hist.length > 10 && <div className="nota">Se muestran los últimos 10. El historial completo está en la pestaña Historial.</div>}
+        </div>
+      </>
+    )
+  }
+
+  // ---- pantalla 2: instrumentos de la máquina ----
+  return (
+    <>
+      <button className="btn small sec" onClick={() => setMaq(null)} style={{ marginBottom: 10 }}>◀ Todas las máquinas</button>
+      <div className="card" style={{ paddingBottom: 4 }}>
+        <h2 style={{ marginBottom: 4 }}>{titulo}: {items.length} instrumento{items.length === 1 ? '' : 's'}</h2>
+      </div>
+      {items.length === 0 && <div className="card vacio">Esta máquina no tiene instrumentos asignados.</div>}
+      {items.map((i) => {
+        const e = estadoDe(i)
+        return (
+          <div className="lista-item clic" key={i.id} onClick={() => setSel(i.id)}>
+            <div>
+              <div className="cod">{i.codigo} <span className="meta">· {i.tipo === 'Otro' ? i.tipoOtro || 'Otro' : i.tipo} · {i.modalidad}</span></div>
+              <div className="meta">Vence: {fmt(i.vencimiento)} · A cargo: {i.aCargo || '—'}</div>
+              <div className="meta" style={{ color: 'var(--accent-dark)' }}>Ver ficha completa ▸</div>
+            </div>
+            <span className={`estado ${e.clase}`}>{e.texto}</span>
+          </div>
+        )
+      })}
     </>
   )
 }

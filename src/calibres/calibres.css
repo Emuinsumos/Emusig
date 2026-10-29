@@ -85,3 +85,14 @@
 .cal-root .mes.on b { color: #fff; }
 .cal-root .mes.pasado b { color: var(--bad); }
 .cal-root .mes.on.pasado b { color: #fff; }
+
+.cal-root .maq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+.cal-root .maq-card { background: #fff; border: 1px solid var(--line); border-left-width: 6px; border-radius: 10px; padding: 12px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 2px; font: inherit; color: var(--text); }
+.cal-root .maq-card.ok { border-left-color: var(--ok); }
+.cal-root .maq-card.warn { border-left-color: var(--warn); background: #fffaf0; }
+.cal-root .maq-card.bad { border-left-color: var(--bad); background: #fff5f5; }
+.cal-root .maq-card.na { border-left-color: var(--line); color: var(--muted); }
+.cal-root .maq-card b { font-size: 28px; line-height: 1.1; }
+.cal-root .maq-nombre { font-weight: 700; word-break: break-word; }
+.cal-root .maq-sub { font-size: 12px; color: var(--muted); }
+.cal-root .lista-item.clic { cursor: pointer; }
