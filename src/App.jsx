@@ -1538,7 +1538,7 @@ function CalidadView({ setView, operarios, setOperarios, plantillas, addPlantill
         {mainTab==="plantillas" && <CalidadPlantillasView plantillas={plantillas} addPlantilla={addPlantilla} removePlantilla={removePlantilla} />}
         {mainTab==="recibidos"  && <CalidadRecibidosView registros={registros} plantillas={plantillas} updateRegistro={updateRegistro} />}
         <AvisoSolicitudes onVer={() => setMainTab("calibres")} />
-        {mainTab==="calibres" && <Calibres embebido />}
+        {mainTab==="calibres" && <Calibres embebido maquinas={machines} />}
         {mainTab==="stats"      && <CalidadStatsView registros={registros} plantillas={plantillas} />}
         {mainTab==="documentos" && <CalidadDocumentacionView documentos={documentos} addDocumento={addDocumento} removeDocumento={removeDocumento} />}
         {mainTab==="descartes"  && <DescartesView descartes={descartes||[]} machines={machines||[]} piezas={piezas||[]} />}

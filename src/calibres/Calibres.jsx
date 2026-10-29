@@ -56,6 +56,18 @@ function tolDe(inst, tols) {
   return v !== null ? { valor: v, origen: `tabla (${inst.tipo} ${inst.modalidad.toLowerCase()})` } : null
 }
 
+// Lista de máquinas: acepta array de textos/objetos o un objeto indexado; devuelve textos únicos ordenados.
+function normMaquinas(m) {
+  const arr = Array.isArray(m) ? m : Object.values(m || {})
+  const out = arr
+    .map((x) => (x && typeof x === 'object' ? (x.numero ?? x.id ?? x.nombre ?? x.name ?? '') : x))
+    .map((x) => String(x ?? '').trim())
+    .filter(Boolean)
+  return [...new Set(out)].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
+}
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+const MESES_C = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
 // ---------- estado ----------
 function estadoDe(i) {
   if (i.activo === false) return { clase: 'na', texto: 'BAJA', orden: 9 }
@@ -96,7 +108,8 @@ async function notificar(titulo, cuerpo) {
 // ---------- App ----------
 // embebido: true cuando va dentro del SIG (oculta el título propio).
 // operario: nombre del operario logueado en el SIG (se usa como responsable por defecto del control).
-function CalibresApp({ embebido = false, operario = '' }) {
+function CalibresApp({ embebido = false, operario = '', maquinas = [] }) {
+  const listaMaq = useMemo(() => normMaquinas(maquinas), [maquinas])
   const [instrumentos, setInstrumentos] = useState({})
   const [controles, setControles] = useState({})
   const [tols, setTols] = useState({})
@@ -171,6 +184,7 @@ function CalibresApp({ embebido = false, operario = '' }) {
         <button className={`tab ${tab === 'panel' ? 'on' : ''}`} onClick={() => setTab('panel')}>
           Vencimientos{nVenc > 0 && <span className="n">{nVenc}</span>}
         </button>
+        <button className={`tab ${tab === 'calendario' ? 'on' : ''}`} onClick={() => setTab('calendario')}>Calendario</button>
         <button className={`tab ${tab === 'solicitudes' ? 'on' : ''}`} onClick={() => setTab('solicitudes')}>
           Solicitudes{solPend.length > 0 && <span className="n">{solPend.length}</span>}
         </button>
@@ -185,9 +199,11 @@ function CalibresApp({ embebido = false, operario = '' }) {
       {tab === 'panel' && (
         <Panel lista={lista} porVencer={porVencer} permiso={permiso} activarAvisos={activarAvisos} irAControl={irAControl} solPend={solPend} irASolicitudes={() => setTab('solicitudes')} />
       )}
+      {tab === 'calendario' && <Calendario lista={lista} tols={tols} maquinas={listaMaq} irAControl={irAControl} />}
       {tab === 'instrumentos' && (
         <Instrumentos
           lista={lista}
+          maquinas={listaMaq}
           tols={tols}
           editando={editando}
           setEditando={setEditando}
@@ -291,12 +307,14 @@ function Panel({ lista, porVencer, permiso, activarAvisos, irAControl, solPend, 
 // ---------- Instrumentos ----------
 const VACIO = {
   codigo: '', tipo: 'Vernier', tipoOtro: '', modalidad: 'Mecánico', nroFab: '', marca: '',
-  frecMeses: 12, aCargo: '', apreciacion: '', tolerancia: '', ultimaRevision: '', vencimiento: '', activo: true, rechazado: false,
+  frecMeses: 12, aCargo: '', apreciacion: '', tolerancia: '', maquina: '', ultimaRevision: '', vencimiento: '', activo: true, rechazado: false,
 }
 
-function Instrumentos({ lista, tols, editando, setEditando, irAControl, mostrar }) {
+function Instrumentos({ lista, tols, maquinas, editando, setEditando, irAControl, mostrar }) {
   const [q, setQ] = useState('')
   const [fTipo, setFTipo] = useState('')
+  const [fMaq, setFMaq] = useState('')
+  const [abierto, setAbierto] = useState('')
 
   if (editando) {
     const base = editando === 'nuevo' ? VACIO : lista.find((i) => i.id === editando) || VACIO
@@ -307,6 +325,7 @@ function Instrumentos({ lista, tols, editando, setEditando, irAControl, mostrar 
         id={editando === 'nuevo' ? null : editando}
         lista={lista}
         tols={tols}
+        maquinas={maquinas}
         alTerminar={(msg) => { if (msg) mostrar(msg); setEditando(null) }}
       />
     )
@@ -315,14 +334,15 @@ function Instrumentos({ lista, tols, editando, setEditando, irAControl, mostrar 
   const filtrada = lista
     .filter((i) => {
       const t = `${i.codigo} ${i.marca} ${i.nroFab} ${i.aCargo} ${i.tipoOtro || ''}`.toLowerCase()
-      return t.includes(q.toLowerCase()) && (!fTipo || i.tipo === fTipo)
+      const okMaq = !fMaq || (fMaq === '__sin' ? !i.maquina : i.maquina === fMaq)
+      return t.includes(q.toLowerCase()) && (!fTipo || i.tipo === fTipo) && okMaq
     })
     .sort((a, b) => estadoDe(a).orden - estadoDe(b).orden || a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
 
   const exportar = () => {
-    const cab = ['Código', 'Tipo', 'Modalidad', 'N° fabricación', 'Marca', 'Frec. control (meses)', 'A cargo de', 'Apreciación', 'Última revisión', 'Vencimiento', 'Estado']
+    const cab = ['Código', 'Máquina', 'Tipo', 'Modalidad', 'N° fabricación', 'Marca', 'Frec. control (meses)', 'A cargo de', 'Apreciación', 'Última revisión', 'Vencimiento', 'Estado']
     const filas = lista.map((i) => [
-      i.codigo, i.tipo === 'Otro' ? i.tipoOtro : i.tipo, i.modalidad, i.nroFab, i.marca, i.frecMeses, i.aCargo,
+      i.codigo, i.maquina || '', i.tipo === 'Otro' ? i.tipoOtro : i.tipo, i.modalidad, i.nroFab, i.marca, i.frecMeses, i.aCargo,
       i.apreciacion, fmt(i.ultimaRevision), fmt(i.vencimiento), estadoDe(i).texto,
     ])
     const csv = [cab, ...filas].map((f) => f.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\n')
@@ -342,7 +362,13 @@ function Instrumentos({ lista, tols, editando, setEditando, irAControl, mostrar 
             <option value="">Todos los tipos</option>
             {TIPOS.map((t) => <option key={t}>{t}</option>)}
           </select>
+          <select style={{ flex: 1, minWidth: 120 }} value={fMaq} onChange={(e) => setFMaq(e.target.value)}>
+            <option value="">Todas las máquinas</option>
+            <option value="__sin">Sin máquina asignada</option>
+            {opcionesMaq(maquinas, lista).map((m) => <option key={m} value={m}>Máquina {m}</option>)}
+          </select>
         </div>
+        {fMaq && <div className="nota" style={{ marginBottom: 0 }}>{filtrada.length} instrumento{filtrada.length === 1 ? '' : 's'} {fMaq === '__sin' ? 'sin máquina asignada' : `en la máquina ${fMaq}`}.</div>}
         <div className="row" style={{ marginTop: 10 }}>
           <button className="btn" onClick={() => setEditando('nuevo')}>+ Nuevo instrumento</button>
           <button className="btn sec" onClick={exportar} disabled={!lista.length}>Exportar CSV</button>
@@ -352,7 +378,6 @@ function Instrumentos({ lista, tols, editando, setEditando, irAControl, mostrar 
       {filtrada.length === 0 && <div className="card vacio">No hay instrumentos para mostrar.</div>}
       {filtrada.map((i) => {
         const e = estadoDe(i)
-        const t = tolDe(i, tols)
         return (
           <div className="lista-item" key={i.id}>
             <div>
@@ -360,9 +385,11 @@ function Instrumentos({ lista, tols, editando, setEditando, irAControl, mostrar 
               <div className="meta">
                 {i.tipo === 'Otro' ? i.tipoOtro || 'Otro' : i.tipo} · {i.modalidad} {i.marca && `· ${i.marca}`} {i.nroFab && `· N° ${i.nroFab}`}
               </div>
-              <div className="meta">A cargo: {i.aCargo || '—'} · Última rev.: {fmt(i.ultimaRevision)} · Vence: {fmt(i.vencimiento)}</div>
-              <div className="meta">Tolerancia: {t ? `${t.valor} mm (${t.origen})` : 'sin definir'}</div>
+              <div className="meta">Máquina: {i.maquina || 'sin asignar'} · A cargo: {i.aCargo || '—'}</div>
+              <div className="meta">Última rev.: {fmt(i.ultimaRevision)} · Vence: {fmt(i.vencimiento)}</div>
+              {abierto === i.id && <FichaDatos inst={i} tols={tols} />}
               <div className="row" style={{ marginTop: 8 }}>
+                <button className="btn small sec" onClick={() => setAbierto(abierto === i.id ? '' : i.id)}>{abierto === i.id ? 'Ocultar ficha' : 'Ver ficha'}</button>
                 <button className="btn small" onClick={() => irAControl(i.id)}>Registrar control</button>
                 <button className="btn small sec" onClick={() => setEditando(i.id)}>Editar</button>
                 <button className="btn small sec" onClick={() => etiquetasPDF([i]).catch(() => mostrar('No se pudo generar la etiqueta'))}>Etiqueta</button>
@@ -376,7 +403,7 @@ function Instrumentos({ lista, tols, editando, setEditando, irAControl, mostrar 
   )
 }
 
-function FormInstrumento({ inicial, id, lista, tols, alTerminar }) {
+function FormInstrumento({ inicial, id, lista, tols, maquinas, alTerminar }) {
   const [f, setF] = useState({ ...VACIO, ...inicial })
   const [err, setErr] = useState('')
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
@@ -436,6 +463,17 @@ function FormInstrumento({ inicial, id, lista, tols, alTerminar }) {
         </div>
         <div><label>N° de fabricación</label><input value={f.nroFab} onChange={(e) => set('nroFab', e.target.value)} /></div>
         <div><label>Marca</label><input value={f.marca} onChange={(e) => set('marca', e.target.value)} /></div>
+        <div>
+          <label>Máquina</label>
+          {maquinas.length > 0 || f.maquina ? (
+            <select value={f.maquina || ''} onChange={(e) => set('maquina', e.target.value)}>
+              <option value="">Sin asignar</option>
+              {opcionesMaq(maquinas, [f]).map((m) => <option key={m} value={m}>Máquina {m}</option>)}
+            </select>
+          ) : (
+            <input value={f.maquina || ''} onChange={(e) => set('maquina', e.target.value)} placeholder="Ej: 12 (opcional)" />
+          )}
+        </div>
         <div><label>A cargo de</label><input value={f.aCargo} onChange={(e) => set('aCargo', e.target.value)} /></div>
         <div><label>Apreciación (mm)</label><input inputMode="decimal" value={f.apreciacion} onChange={(e) => set('apreciacion', e.target.value)} placeholder="0,01" /></div>
         <div>
@@ -850,6 +888,7 @@ function Escaner({ lista, controles, tols, irAControl, mostrar, modo = 'calidad'
         const t = tolDe(inst, tols)
         const datos = [
           ['Tipo', `${inst.tipo === 'Otro' ? inst.tipoOtro || 'Otro' : inst.tipo} · ${inst.modalidad}`],
+          ['Máquina', inst.maquina || 'sin asignar'],
           ['Marca', inst.marca || '—'],
           ['N° de fabricación', inst.nroFab || '—'],
           ['A cargo de', inst.aCargo || '—'],
@@ -1202,4 +1241,127 @@ export default function Calibres(props) {
 
 export function InstrumentosOperador(props) {
   return <Contencion><InstrumentosOperadorBase {...props} /></Contencion>
+}
+
+// Máquinas disponibles + las que ya usan los instrumentos (por si alguna ya no está en la lista de producción)
+function opcionesMaq(maquinas, lista) {
+  const usadas = lista.map((i) => String(i.maquina || '').trim()).filter(Boolean)
+  return [...new Set([...maquinas, ...usadas])].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
+}
+
+// ---------- Ficha completa de un instrumento ----------
+function FichaDatos({ inst, tols }) {
+  const t = tolDe(inst, tols)
+  const datos = [
+    ['Tipo', `${inst.tipo === 'Otro' ? inst.tipoOtro || 'Otro' : inst.tipo} · ${inst.modalidad}`],
+    ['Máquina', inst.maquina || 'sin asignar'],
+    ['Marca', inst.marca || '—'],
+    ['N° de fabricación', inst.nroFab || '—'],
+    ['A cargo de', inst.aCargo || '—'],
+    ['Apreciación', inst.apreciacion ? `${inst.apreciacion} mm` : '—'],
+    ['Frecuencia de control', inst.frecMeses ? `${inst.frecMeses} meses` : '—'],
+    ['Última revisión', fmt(inst.ultimaRevision)],
+    ['Vencimiento', fmt(inst.vencimiento)],
+    ['Tolerancia', t ? `${t.valor} mm (${t.origen})` : 'sin definir'],
+  ]
+  return (
+    <div style={{ margin: '8px 0', padding: '4px 10px', background: 'var(--panel)', borderRadius: 8 }}>
+      {datos.map(([k, v]) => (
+        <div className="alerta" key={k}><span style={{ color: 'var(--muted)' }}>{k}</span><b>{v}</b></div>
+      ))}
+    </div>
+  )
+}
+
+// ---------- Calendario mes a mes: qué vence en cada mes ----------
+function Calendario({ lista, tols, maquinas, irAControl }) {
+  const hoy = hoyISO()
+  const [anio, setAnio] = useState(Number(hoy.slice(0, 4)))
+  const [mes, setMes] = useState(Number(hoy.slice(5, 7)))
+  const [fMaq, setFMaq] = useState('')
+  const [abierto, setAbierto] = useState('')
+
+  const activos = lista.filter((i) => i.activo !== false && i.vencimiento && (!fMaq || (fMaq === '__sin' ? !i.maquina : i.maquina === fMaq)))
+  const porMes = Array.from({ length: 12 }, (_, k) => {
+    const pref = `${anio}-${pad(k + 1)}`
+    return activos.filter((i) => i.vencimiento.startsWith(pref))
+  })
+  const delMes = porMes[mes - 1].slice().sort((a, b) => a.vencimiento.localeCompare(b.vencimiento) || a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
+  const esActual = anio === Number(hoy.slice(0, 4)) && mes === Number(hoy.slice(5, 7))
+  const atrasados = esActual ? activos.filter((i) => i.vencimiento < `${anio}-${pad(mes)}-01`) : []
+  const sinFecha = lista.filter((i) => i.activo !== false && !i.vencimiento).length
+
+  const ir = (d) => {
+    let m = mes + d
+    let a = anio
+    if (m < 1) { m = 12; a -= 1 }
+    if (m > 12) { m = 1; a += 1 }
+    setMes(m); setAnio(a); setAbierto('')
+  }
+
+  const fila = (i) => {
+    const e = estadoDe(i)
+    return (
+      <div className="lista-item" key={i.id}>
+        <div>
+          <div className="cod">{i.codigo} <span className="meta">· {i.tipo === 'Otro' ? i.tipoOtro || 'Otro' : i.tipo} · {i.modalidad}</span></div>
+          <div className="meta">Vence: <b>{fmt(i.vencimiento)}</b> · Máquina: {i.maquina || 'sin asignar'} · A cargo: {i.aCargo || '—'}</div>
+          {abierto === i.id && <FichaDatos inst={i} tols={tols} />}
+          <div className="row" style={{ marginTop: 8 }}>
+            <button className="btn small sec" onClick={() => setAbierto(abierto === i.id ? '' : i.id)}>{abierto === i.id ? 'Ocultar ficha' : 'Ver ficha'}</button>
+            <button className="btn small" onClick={() => irAControl(i.id)}>Registrar control</button>
+          </div>
+        </div>
+        <span className={`estado ${e.clase}`}>{e.texto}</span>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="card">
+        <div className="row">
+          <button className="btn small sec" onClick={() => ir(-1)}>◀</button>
+          <h2 style={{ margin: 0, flex: 1, textAlign: 'center' }}>{MESES[mes - 1]} {anio}</h2>
+          <button className="btn small sec" onClick={() => ir(1)}>▶</button>
+        </div>
+        <div className="meses">
+          {MESES_C.map((nm, k) => {
+            const n = porMes[k].length
+            const pasado = `${anio}-${pad(k + 1)}` < hoy.slice(0, 7)
+            return (
+              <button key={nm} className={`mes ${mes === k + 1 ? 'on' : ''} ${n && pasado ? 'pasado' : ''}`} onClick={() => { setMes(k + 1); setAbierto('') }}>
+                <span>{nm}</span>
+                <b>{n || '·'}</b>
+              </button>
+            )
+          })}
+        </div>
+        <select style={{ marginTop: 10 }} value={fMaq} onChange={(e) => setFMaq(e.target.value)}>
+          <option value="">Todas las máquinas</option>
+          <option value="__sin">Sin máquina asignada</option>
+          {opcionesMaq(maquinas, lista).map((m) => <option key={m} value={m}>Máquina {m}</option>)}
+        </select>
+        <div className="nota" style={{ marginBottom: 0 }}>
+          Cada casillero muestra cuántos instrumentos vencen ese mes. Tocá un mes para ver la lista.
+          {sinFecha > 0 && ` Hay ${sinFecha} instrumento${sinFecha > 1 ? 's' : ''} sin fecha de vencimiento.`}
+        </div>
+      </div>
+
+      <div className="card" style={{ paddingBottom: 4 }}>
+        <h2 style={{ marginBottom: 4 }}>Vencen en {MESES[mes - 1].toLowerCase()}: {delMes.length}</h2>
+      </div>
+      {delMes.length === 0 && <div className="card vacio">No vence ningún instrumento en {MESES[mes - 1].toLowerCase()} {anio}.</div>}
+      {delMes.map(fila)}
+
+      {atrasados.length > 0 && (
+        <>
+          <div className="nota" style={{ margin: '14px 0 6px', color: 'var(--bad)' }}>
+            Ya vencidos de meses anteriores y sin renovar: {atrasados.length}
+          </div>
+          {atrasados.sort((a, b) => a.vencimiento.localeCompare(b.vencimiento)).map(fila)}
+        </>
+      )}
+    </>
+  )
 }

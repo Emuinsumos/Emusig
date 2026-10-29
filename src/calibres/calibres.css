@@ -77,3 +77,11 @@
 
 .cal-root .cal-aviso { position: fixed; top: 8px; left: 8px; right: 8px; z-index: 1000; background: #fff; border: 2px solid var(--warn); border-left-width: 8px; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
 .cal-root textarea { resize: vertical; }
+
+.cal-root .meses { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 12px; }
+.cal-root .mes { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--muted); font: inherit; }
+.cal-root .mes b { font-size: 18px; color: var(--text); }
+.cal-root .mes.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cal-root .mes.on b { color: #fff; }
+.cal-root .mes.pasado b { color: var(--bad); }
+.cal-root .mes.on.pasado b { color: #fff; }
