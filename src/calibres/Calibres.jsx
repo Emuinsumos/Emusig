@@ -8,6 +8,9 @@ const TIPOS = ['Vernier', 'Micrómetro', 'Alesómetro', 'Tapón P-NP', 'Otro']
 const MODALIDADES = ['Mecánico', 'Digital']
 const PUNTOS = 5
 const AVISO_DIAS = 7
+const MOTIVOS = ['Mal funcionamiento', 'Golpe o caída', 'Lectura dudosa', 'Daño o desgaste visible', 'Se pasó la fecha de control', 'Otro']
+const fmtHora = (ms) =>
+  ms ? new Date(ms).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'
 
 // ---------- fechas ----------
 const pad = (n) => String(n).padStart(2, '0')
@@ -85,6 +88,7 @@ export default function Calibres({ embebido = false, operario = '' }) {
   const [instrumentos, setInstrumentos] = useState({})
   const [controles, setControles] = useState({})
   const [tols, setTols] = useState({})
+  const [solicitudes, setSolicitudes] = useState({})
   const [tab, setTab] = useState('panel')
   const [editando, setEditando] = useState(null) // null | 'nuevo' | id
   const [controlPara, setControlPara] = useState('')
@@ -99,6 +103,7 @@ export default function Calibres({ embebido = false, operario = '' }) {
   useEffect(() => escuchar('instrumentos', setInstrumentos), [])
   useEffect(() => escuchar('controles', setControles), [])
   useEffect(() => escuchar('tolerancias', setTols), [])
+  useEffect(() => escuchar('solicitudes', setSolicitudes), [])
 
   const lista = useMemo(
     () => Object.entries(instrumentos).map(([id, v]) => ({ ...v, id })),
@@ -107,6 +112,11 @@ export default function Calibres({ embebido = false, operario = '' }) {
   const porVencer = useMemo(
     () => lista.filter((i) => ['bad', 'warn'].includes(estadoDe(i).clase)).sort((a, b) => estadoDe(a).orden - estadoDe(b).orden),
     [lista]
+  )
+
+  const solPend = useMemo(
+    () => Object.entries(solicitudes).map(([id, s]) => ({ ...s, id })).filter((s) => s.estado === 'pendiente').sort((a, b) => (b.creado || 0) - (a.creado || 0)),
+    [solicitudes]
   )
 
   // aviso del navegador al abrir y cada hora (solo funciona con la app abierta)
@@ -149,6 +159,9 @@ export default function Calibres({ embebido = false, operario = '' }) {
         <button className={`tab ${tab === 'panel' ? 'on' : ''}`} onClick={() => setTab('panel')}>
           Vencimientos{nVenc > 0 && <span className="n">{nVenc}</span>}
         </button>
+        <button className={`tab ${tab === 'solicitudes' ? 'on' : ''}`} onClick={() => setTab('solicitudes')}>
+          Solicitudes{solPend.length > 0 && <span className="n">{solPend.length}</span>}
+        </button>
         <button className={`tab ${tab === 'escanear' ? 'on' : ''}`} onClick={() => setTab('escanear')}>Escanear</button>
         <button className={`tab ${tab === 'instrumentos' ? 'on' : ''}`} onClick={() => { setTab('instrumentos'); setEditando(null) }}>Instrumentos</button>
         <button className={`tab ${tab === 'control' ? 'on' : ''}`} onClick={() => setTab('control')}>Registrar control</button>
@@ -158,7 +171,7 @@ export default function Calibres({ embebido = false, operario = '' }) {
       </div>
 
       {tab === 'panel' && (
-        <Panel lista={lista} porVencer={porVencer} permiso={permiso} activarAvisos={activarAvisos} irAControl={irAControl} />
+        <Panel lista={lista} porVencer={porVencer} permiso={permiso} activarAvisos={activarAvisos} irAControl={irAControl} solPend={solPend} irASolicitudes={() => setTab('solicitudes')} />
       )}
       {tab === 'instrumentos' && (
         <Instrumentos
@@ -174,6 +187,7 @@ export default function Calibres({ embebido = false, operario = '' }) {
         <RegistrarControl
           lista={lista.filter((i) => i.activo !== false)}
           tols={tols}
+          solicitudes={solicitudes}
           inicial={controlPara}
           operario={operario}
           mostrar={mostrar}
@@ -181,6 +195,9 @@ export default function Calibres({ embebido = false, operario = '' }) {
         />
       )}
       {tab === 'historial' && <Historial lista={lista} controles={controles} mostrar={mostrar} />}
+      {tab === 'solicitudes' && (
+        <Solicitudes lista={lista} solicitudes={solicitudes} irAControl={irAControl} mostrar={mostrar} />
+      )}
       {tab === 'escanear' && (
         <Escaner lista={lista} controles={controles} tols={tols} irAControl={irAControl} mostrar={mostrar} />
       )}
@@ -193,13 +210,26 @@ export default function Calibres({ embebido = false, operario = '' }) {
 }
 
 // ---------- Panel ----------
-function Panel({ lista, porVencer, permiso, activarAvisos, irAControl }) {
+function Panel({ lista, porVencer, permiso, activarAvisos, irAControl, solPend, irASolicitudes }) {
   const activos = lista.filter((i) => i.activo !== false)
   const vencidos = activos.filter((i) => estadoDe(i).clase === 'bad').length
   const proximos = activos.filter((i) => estadoDe(i).clase === 'warn').length
   const vigentes = activos.filter((i) => estadoDe(i).clase === 'ok').length
   return (
     <>
+      {solPend.length > 0 && (
+        <div className="card alertas">
+          <div className="row">
+            <div className="sp">
+              <b>{solPend.length} solicitud{solPend.length > 1 ? 'es' : ''} de revisión pendiente{solPend.length > 1 ? 's' : ''}</b>
+              <div className="nota">
+                {solPend.slice(0, 3).map((s) => `${s.codigo} (${s.motivo})`).join(' · ')}{solPend.length > 3 ? '…' : ''}
+              </div>
+            </div>
+            <button className="btn small" onClick={irASolicitudes}>Ver</button>
+          </div>
+        </div>
+      )}
       <div className="resumen">
         <div className="kpi bad"><b>{vencidos}</b><span>Vencidos / rechazados</span></div>
         <div className="kpi warn"><b>{proximos}</b><span>Vencen en ≤ {AVISO_DIAS} días</span></div>
@@ -234,7 +264,7 @@ function Panel({ lista, porVencer, permiso, activarAvisos, irAControl }) {
       {permiso !== 'granted' && permiso !== 'unsupported' && (
         <div className="card">
           <div className="row">
-            <div className="sp">Recibir aviso del navegador cuando falte una semana o menos.</div>
+            <div className="sp">Recibir aviso del navegador cuando falte una semana o menos, o cuando un operario pida una revisión.</div>
             <button className="btn sec" onClick={activarAvisos} disabled={permiso === 'denied'}>
               {permiso === 'denied' ? 'Bloqueado en el navegador' : 'Activar avisos'}
             </button>
@@ -418,7 +448,7 @@ function FormInstrumento({ inicial, id, lista, tols, alTerminar }) {
 }
 
 // ---------- Registrar control ----------
-function RegistrarControl({ lista, tols, inicial, operario, mostrar, alTerminar }) {
+function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar, alTerminar }) {
   const [instId, setInstId] = useState(inicial || '')
   const [fecha, setFecha] = useState(hoyISO())
   const [galga, setGalga] = useState('')
@@ -473,6 +503,10 @@ function RegistrarControl({ lista, tols, inicial, operario, mostrar, alTerminar 
       await guardar('instrumentos', inst.id, { ...datos, rechazado: false, ultimaRevision: fecha, vencimiento: vence })
     } else {
       await guardar('instrumentos', inst.id, { ...datos, rechazado: true, ultimaRevision: fecha })
+    }
+    const abiertas = Object.entries(solicitudes || {}).filter(([, s]) => s.instrumentoId === inst.id && s.estado === 'pendiente')
+    for (const [sid, s] of abiertas) {
+      await guardar('solicitudes', sid, { ...s, estado: 'atendida', atendidaEn: Date.now(), atendidaPor: 'control', controlId: id })
     }
     mostrar(resultado === 'Aprobado' ? 'Control aprobado. Vencimiento actualizado.' : 'Control rechazado registrado.')
     alTerminar()
@@ -690,11 +724,12 @@ function Tolerancias({ tols, mostrar }) {
 }
 
 // ---------- Escáner (cámara + código escrito o lector USB/Bluetooth) ----------
-function Escaner({ lista, controles, tols, irAControl, mostrar }) {
+function Escaner({ lista, controles, tols, irAControl, mostrar, modo = 'calidad', solicitudes = {}, operario = '', maquina = '' }) {
   const [encId, setEncId] = useState(null)
   const [manual, setManual] = useState('')
   const [camara, setCamara] = useState(false)
   const [err, setErr] = useState('')
+  const [solicitando, setSolicitando] = useState(false)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const timerRef = useRef(null)
@@ -720,6 +755,7 @@ function Escaner({ lista, controles, tols, irAControl, mostrar }) {
     }
     setErr('')
     setEncId(inst.id)
+    setSolicitando(false)
     setManual('')
     try { navigator.vibrate && navigator.vibrate(120) } catch { /* nada */ }
     return true
@@ -810,7 +846,8 @@ function Escaner({ lista, controles, tols, irAControl, mostrar }) {
           ['Última revisión', fmt(inst.ultimaRevision)],
           ['Vencimiento', fmt(inst.vencimiento)],
           ['Tolerancia', t ? `${t.valor} mm (${t.origen})` : 'sin definir'],
-        ]
+        ].filter(([k]) => modo !== 'operador' || k !== 'Tolerancia')
+        const pendInst = Object.values(solicitudes).filter((s) => s.instrumentoId === inst.id && s.estado === 'pendiente')
         return (
           <div className="card">
             <div className="row">
@@ -828,14 +865,28 @@ function Escaner({ lista, controles, tols, irAControl, mostrar }) {
                 ? `Último control: ${fmt(ultimo.fecha)} · ${ultimo.resultado}${ultimo.errorMax != null ? ` · error máx. ${Number(ultimo.errorMax).toFixed(5)} mm` : ''}`
                 : 'Todavía no tiene controles registrados.'}
             </div>
+            {pendInst.length > 0 && (
+              <div className="nota" style={{ color: 'var(--warn)' }}>
+                Ya hay {pendInst.length} solicitud{pendInst.length > 1 ? 'es' : ''} de revisión pendiente{pendInst.length > 1 ? 's' : ''} para este instrumento.
+              </div>
+            )}
+            {modo === 'operador' && solicitando && (
+              <FormSolicitud
+                inst={inst} operario={operario} maquina={maquina}
+                onCancel={() => setSolicitando(false)}
+                onEnviada={() => { setSolicitando(false); mostrar('Solicitud enviada a Calidad') }}
+              />
+            )}
             <div className="row" style={{ marginTop: 12 }}>
-              <button className="btn" onClick={() => irAControl(inst.id)}>Registrar control</button>
-              {ultimo && (
+              {modo === 'operador'
+                ? <button className="btn" onClick={() => setSolicitando(true)} disabled={solicitando}>Solicitar revisión</button>
+                : <button className="btn" onClick={() => irAControl(inst.id)}>Registrar control</button>}
+              {ultimo && modo !== 'operador' && (
                 <button className="btn sec" onClick={() => certificadoPDF(ultimo, inst).catch(() => mostrar('No se pudo generar el PDF'))}>
                   Último certificado
                 </button>
               )}
-              <button className="btn sec" onClick={() => { setEncId(null); iniciar() }} disabled={!soporta}>Escanear otro</button>
+              <button className="btn sec" onClick={() => { setEncId(null); setSolicitando(false); iniciar() }} disabled={!soporta}>Escanear otro</button>
             </div>
           </div>
         )
@@ -890,6 +941,229 @@ function Etiquetas({ lista, mostrar }) {
       ))}
       <div className="row" style={{ marginTop: 12 }}>
         <button className="btn" onClick={generar} disabled={!elegidos.length}>Generar PDF de etiquetas</button>
+      </div>
+    </div>
+  )
+}
+
+// ---------- Solicitud de revisión (la hace el operador) ----------
+function FormSolicitud({ inst, operario, maquina, onCancel, onEnviada }) {
+  const [motivo, setMotivo] = useState(MOTIVOS[0])
+  const [comentario, setComentario] = useState('')
+  const [nombre, setNombre] = useState(() => {
+    if (operario) return operario
+    try { return localStorage.getItem('calibres_nombre') || '' } catch { return '' }
+  })
+  const [maq, setMaq] = useState(maquina || '')
+  const [err, setErr] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  const enviar = async () => {
+    if (!nombre.trim()) return setErr('Poné tu nombre.')
+    if (motivo === 'Otro' && !comentario.trim()) return setErr('Contanos el motivo en el comentario.')
+    setErr('')
+    setEnviando(true)
+    try {
+      await guardar('solicitudes', nuevoId(), {
+        instrumentoId: inst.id, codigo: inst.codigo,
+        tipoTexto: inst.tipo === 'Otro' ? inst.tipoOtro || 'Otro' : inst.tipo, modalidad: inst.modalidad || '',
+        motivo, comentario: comentario.trim(), solicitante: nombre.trim(), maquina: String(maq).trim(),
+        fecha: hoyISO(), creado: Date.now(), estado: 'pendiente',
+      })
+      try { if (!operario) localStorage.setItem('calibres_nombre', nombre.trim()) } catch { /* nada */ }
+      onEnviada()
+    } catch (e) {
+      console.error(e)
+      setErr('No se pudo enviar. Revisá la conexión e intentá de nuevo.')
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="card" style={{ background: '#fff', marginTop: 12, marginBottom: 0 }}>
+      <h2>Solicitar revisión de {inst.codigo}</h2>
+      <div className="grid">
+        <div>
+          <label>Motivo</label>
+          <select value={motivo} onChange={(e) => setMotivo(e.target.value)}>
+            {MOTIVOS.map((m) => <option key={m}>{m}</option>)}
+          </select>
+        </div>
+        {!operario && (
+          <div><label>Tu nombre</label><input value={nombre} onChange={(e) => setNombre(e.target.value)} /></div>
+        )}
+        <div><label>Máquina (opcional)</label><input value={maq} onChange={(e) => setMaq(e.target.value)} placeholder="Ej: 12" /></div>
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <label>Comentario {motivo === 'Otro' ? '' : '(opcional)'}</label>
+        <textarea rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder="Qué le pasa al instrumento" />
+      </div>
+      {err && <div style={{ color: 'var(--bad)', marginTop: 8 }}>{err}</div>}
+      <div className="row" style={{ marginTop: 12 }}>
+        <button className="btn" onClick={enviar} disabled={enviando}>{enviando ? 'Enviando…' : 'Enviar a Calidad'}</button>
+        <button className="btn sec" onClick={onCancel} disabled={enviando}>Cancelar</button>
+      </div>
+    </div>
+  )
+}
+
+// ---------- Bandeja de solicitudes (lado Calidad) ----------
+function Solicitudes({ lista, solicitudes, irAControl, mostrar }) {
+  const todas = Object.entries(solicitudes).map(([id, s]) => ({ ...s, id })).sort((a, b) => (b.creado || 0) - (a.creado || 0))
+  const pend = todas.filter((s) => s.estado === 'pendiente')
+  const hechas = todas.filter((s) => s.estado !== 'pendiente').slice(0, 15)
+
+  const atender = async (s) => {
+    const { id, ...resto } = s
+    await guardar('solicitudes', id, { ...resto, estado: 'atendida', atendidaEn: Date.now(), atendidaPor: 'manual' })
+    mostrar('Marcada como atendida')
+  }
+
+  const fila = (s, esPend) => {
+    const inst = lista.find((i) => i.id === s.instrumentoId)
+    return (
+      <div className="lista-item" key={s.id}>
+        <div>
+          <div className="cod">{s.codigo} <span className="meta">· {s.tipoTexto}{s.modalidad ? ` · ${s.modalidad}` : ''}</span></div>
+          <div style={{ fontWeight: 700, marginTop: 4 }}>{s.motivo}</div>
+          {s.comentario && <div className="meta">{s.comentario}</div>}
+          <div className="meta">
+            Pidió: {s.solicitante || '—'}{s.maquina ? ` · Máq. ${s.maquina}` : ''} · {fmtHora(s.creado)}
+            {!esPend && s.atendidaEn ? ` · atendida ${fmtHora(s.atendidaEn)}${s.atendidaPor === 'control' ? ' (control registrado)' : ''}` : ''}
+          </div>
+          {esPend && (
+            <div className="row" style={{ marginTop: 8 }}>
+              {inst && inst.activo !== false && <button className="btn small" onClick={() => irAControl(inst.id)}>Registrar control</button>}
+              <button className="btn small sec" onClick={() => atender(s)}>Marcar atendida</button>
+            </div>
+          )}
+        </div>
+        <span className={`estado ${esPend ? 'warn' : 'ok'}`}>{esPend ? 'PENDIENTE' : 'ATENDIDA'}</span>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="card">
+        <h2>Solicitudes de revisión</h2>
+        <div className="nota" style={{ marginTop: 0 }}>
+          Las envían los operarios desde su panel al escanear un instrumento. Se cierran solas al registrar un control del instrumento.
+        </div>
+      </div>
+      {pend.length === 0 && <div className="card vacio">No hay solicitudes pendientes.</div>}
+      {pend.map((s) => fila(s, true))}
+      {hechas.length > 0 && (
+        <>
+          <div className="nota" style={{ margin: '14px 0 6px' }}>Últimas atendidas</div>
+          {hechas.map((s) => fila(s, false))}
+        </>
+      )}
+    </>
+  )
+}
+
+// ---------- Panel del operador: escanear un instrumento y pedir revisión ----------
+export function InstrumentosOperador({ operario = '', maquina = '' }) {
+  const [instrumentos, setInstrumentos] = useState({})
+  const [controles, setControles] = useState({})
+  const [tols, setTols] = useState({})
+  const [solicitudes, setSolicitudes] = useState({})
+  const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    const fn = (e) => { setToast(e.detail); setTimeout(() => setToast(''), 5000) }
+    window.addEventListener('calibres-error', fn)
+    return () => window.removeEventListener('calibres-error', fn)
+  }, [])
+  useEffect(() => escuchar('instrumentos', setInstrumentos), [])
+  useEffect(() => escuchar('controles', setControles), [])
+  useEffect(() => escuchar('tolerancias', setTols), [])
+  useEffect(() => escuchar('solicitudes', setSolicitudes), [])
+
+  const lista = useMemo(
+    () => Object.entries(instrumentos).map(([id, v]) => ({ ...v, id })).filter((i) => i.activo !== false),
+    [instrumentos]
+  )
+  const mostrar = (m) => { setToast(m); setTimeout(() => setToast(''), 3000) }
+
+  return (
+    <div className="cal-root">
+      <div className="app">
+        <Escaner
+          modo="operador" lista={lista} controles={controles} tols={tols} solicitudes={solicitudes}
+          irAControl={() => {}} mostrar={mostrar} operario={operario} maquina={maquina}
+        />
+        {toast && <div className="toast">{toast}</div>}
+      </div>
+    </div>
+  )
+}
+
+// ---------- Cantidad de solicitudes pendientes (para mostrar un número en una pestaña del SIG) ----------
+export function useSolicitudesPendientes() {
+  const [sol, setSol] = useState({})
+  useEffect(() => escuchar('solicitudes', setSol), [])
+  return Object.values(sol).filter((s) => s.estado === 'pendiente').length
+}
+
+function pitido() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext
+    const ctx = new AC()
+    const o = ctx.createOscillator()
+    const g = ctx.createGain()
+    o.connect(g)
+    g.connect(ctx.destination)
+    o.frequency.value = 880
+    g.gain.value = 0.15
+    o.start()
+    o.stop(ctx.currentTime + 0.25)
+    setTimeout(() => ctx.close(), 500)
+  } catch { /* el navegador puede bloquear el sonido */ }
+}
+
+// ---------- Aviso a Calidad: cartel + sonido + notificación del navegador cuando llega una solicitud ----------
+// Funciona mientras esta pantalla esté abierta. onVer (opcional) lleva a la pestaña de solicitudes.
+export function AvisoSolicitudes({ onVer }) {
+  const [sol, setSol] = useState({})
+  const [nuevo, setNuevo] = useState(null)
+  const conocidas = useRef(null)
+  useEffect(() => escuchar('solicitudes', setSol), [])
+
+  useEffect(() => {
+    const pend = Object.entries(sol).filter(([, s]) => s.estado === 'pendiente')
+    const ids = new Set(pend.map(([id]) => id))
+    if (conocidas.current === null) { conocidas.current = ids; return } // primera carga: no avisar
+    // solo las recién llegadas (evita falsas alarmas si la base manda los datos en dos tandas)
+    const recientes = pend.filter(([id, s]) => !conocidas.current.has(id) && Date.now() - (s.creado || 0) < 120000)
+    conocidas.current = ids
+    if (!recientes.length) return
+    const s = { ...recientes[recientes.length - 1][1] }
+    setNuevo(s)
+    pitido()
+    try { navigator.vibrate && navigator.vibrate([150, 80, 150]) } catch { /* nada */ }
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      try {
+        new Notification('Solicitud de revisión', { body: `${s.codigo} - ${s.motivo}${s.maquina ? ` (máq. ${s.maquina})` : ''}\nPidió: ${s.solicitante || '—'}` })
+      } catch { /* nada */ }
+    }
+  }, [sol])
+
+  if (!nuevo) return null
+  return (
+    <div className="cal-root">
+      <div className="cal-aviso">
+        <div>
+          <b>Solicitud de revisión</b>
+          <div style={{ fontSize: 14 }}>
+            <span className="mono">{nuevo.codigo}</span> · {nuevo.motivo}{nuevo.maquina ? ` · Máq. ${nuevo.maquina}` : ''} · {nuevo.solicitante || '—'}
+          </div>
+        </div>
+        <div className="row">
+          {onVer && <button className="btn small" onClick={() => { onVer(); setNuevo(null) }}>Ver</button>}
+          <button className="btn small sec" onClick={() => setNuevo(null)}>Cerrar</button>
+        </div>
       </div>
     </div>
   )

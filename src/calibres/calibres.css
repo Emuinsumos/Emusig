@@ -74,3 +74,6 @@
 .cal-root .vacio { color: var(--muted); text-align: center; padding: 20px; }
 .cal-root .nota { color: var(--muted); font-size: 12px; margin-top: 6px; }
 .cal-root .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--accent-dark); color: #fff; padding: 10px 18px; border-radius: 8px; font-weight: 700; z-index: 10; max-width: 92vw; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+
+.cal-root .cal-aviso { position: fixed; top: 8px; left: 8px; right: 8px; z-index: 1000; background: #fff; border: 2px solid var(--warn); border-left-width: 8px; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.cal-root textarea { resize: vertical; }
