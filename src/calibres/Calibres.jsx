@@ -77,8 +77,20 @@ function avisarNavegador(items) {
   const nuevos = items.filter((i) => !hechos.includes(i.id))
   if (!nuevos.length) return
   const cuerpo = nuevos.slice(0, 5).map((i) => `${i.codigo}: ${estadoDe(i).texto}`).join('\n')
-  new Notification('Calibres: control por vencer', { body: cuerpo })
+  notificar('Calibres: control por vencer', cuerpo)
   try { localStorage.setItem(clave, JSON.stringify(hechos.concat(nuevos.map((i) => i.id)))) } catch { /* nada */ }
+}
+
+// Notificación segura: en Android hay que usar el service worker; si no se puede, se ignora sin romper nada.
+async function notificar(titulo, cuerpo) {
+  try {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+    if (navigator.serviceWorker) {
+      const reg = await navigator.serviceWorker.getRegistration()
+      if (reg && reg.showNotification) { await reg.showNotification(titulo, { body: cuerpo }); return }
+    }
+    new Notification(titulo, { body: cuerpo })
+  } catch { /* el navegador no lo permite: no pasa nada */ }
 }
 
 // ---------- App ----------
@@ -1143,11 +1155,7 @@ export function AvisoSolicitudes({ onVer }) {
     setNuevo(s)
     pitido()
     try { navigator.vibrate && navigator.vibrate([150, 80, 150]) } catch { /* nada */ }
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      try {
-        new Notification('Solicitud de revisión', { body: `${s.codigo} - ${s.motivo}${s.maquina ? ` (máq. ${s.maquina})` : ''}\nPidió: ${s.solicitante || '—'}` })
-      } catch { /* nada */ }
-    }
+    notificar('Solicitud de revisión', `${s.codigo} - ${s.motivo}${s.maquina ? ` (máq. ${s.maquina})` : ''}\nPidió: ${s.solicitante || '—'}`)
   }, [sol])
 
   if (!nuevo) return null
