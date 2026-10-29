@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Component, useEffect, useMemo, useRef, useState } from 'react'
 import { escuchar, guardar, borrar, nuevoId, modo } from './db.js'
 import './calibres.css'
 import { certificadoPDF } from './certificado.js'
@@ -84,7 +84,7 @@ function avisarNavegador(items) {
 // ---------- App ----------
 // embebido: true cuando va dentro del SIG (oculta el título propio).
 // operario: nombre del operario logueado en el SIG (se usa como responsable por defecto del control).
-export default function Calibres({ embebido = false, operario = '' }) {
+function CalibresApp({ embebido = false, operario = '' }) {
   const [instrumentos, setInstrumentos] = useState({})
   const [controles, setControles] = useState({})
   const [tols, setTols] = useState({})
@@ -1064,7 +1064,7 @@ function Solicitudes({ lista, solicitudes, irAControl, mostrar }) {
 }
 
 // ---------- Panel del operador: escanear un instrumento y pedir revisión ----------
-export function InstrumentosOperador({ operario = '', maquina = '' }) {
+function InstrumentosOperadorBase({ operario = '', maquina = '' }) {
   const [instrumentos, setInstrumentos] = useState({})
   const [controles, setControles] = useState({})
   const [tols, setTols] = useState({})
@@ -1167,4 +1167,31 @@ export function AvisoSolicitudes({ onVer }) {
       </div>
     </div>
   )
+}
+
+// ---------- Si algo falla, mostrar el error en vez de dejar la pantalla en blanco ----------
+class Contencion extends Component {
+  constructor(p) { super(p); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  componentDidCatch(e) { console.error('Calibres:', e) }
+  render() {
+    if (!this.state.error) return this.props.children
+    const e = this.state.error
+    return (
+      <div className="cal-root"><div className="app"><div className="card">
+        <h2>Algo falló en Instrumentos</h2>
+        <div className="nota" style={{ wordBreak: 'break-word' }}>{String((e && e.message) || e)}</div>
+        <div className="nota" style={{ wordBreak: 'break-word', fontSize: 11 }}>{String((e && e.stack) || '').split('\n').slice(0, 4).join(' | ')}</div>
+        <button className="btn" onClick={() => this.setState({ error: null })}>Reintentar</button>
+      </div></div></div>
+    )
+  }
+}
+
+export default function Calibres(props) {
+  return <Contencion><CalibresApp {...props} /></Contencion>
+}
+
+export function InstrumentosOperador(props) {
+  return <Contencion><InstrumentosOperadorBase {...props} /></Contencion>
 }
