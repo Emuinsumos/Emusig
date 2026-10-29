@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+.cal-root {
+  --bg: #ffffff;
+  --panel: #f5f8f6;
+  --panel2: #ebf1ed;
+  --line: #d3ddd6;
+  --text: #17261c;
+  --muted: #5f7066;
+  --accent: #1e8e3e;
+  --accent-dark: #166b2f;
+  --ok: #1e8e3e;
+  --warn: #b7791f;
+  --bad: #c62828;
+}
+.cal-root { font-family: 'DM Sans', system-ui, sans-serif; color: var(--text); }
+.cal-root, .cal-root * { box-sizing: border-box; }
+.cal-root button,
+.cal-root input,
+.cal-root select,
+.cal-root textarea { font: inherit; }
+.cal-root .app { max-width: 980px; margin: 0 auto; padding: 12px 12px 80px; }
+.cal-root .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0 12px; border-bottom: 3px solid var(--accent); margin-bottom: 14px; }
+.cal-root .top h1 { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 1px; margin: 0; }
+.cal-root .top h1 span { color: var(--accent); }
+.cal-root .badge-modo { font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 3px 7px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); }
+.cal-root .badge-modo.local { color: var(--warn); border-color: var(--warn); }
+.cal-root .tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 12px; }
+.cal-root .tab { background: var(--panel); border: 1px solid var(--line); color: var(--muted); padding: 10px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+.cal-root .tab.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.cal-root .tab .n { background: var(--bad); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+.cal-root .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+.cal-root .card h2 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; font-size: 22px; margin: 0 0 10px; color: var(--accent-dark); }
+.cal-root .alertas { border-left: 4px solid var(--bad); }
+.cal-root .alerta { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+.cal-root .alerta:last-child { border-bottom: 0; }
+.cal-root .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.cal-root label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+.cal-root input,
+.cal-root select,
+.cal-root textarea { width: 100%; background: #fff; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+.cal-root input:focus,
+.cal-root select:focus,
+.cal-root textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.cal-root .mono { font-family: 'JetBrains Mono', monospace; }
+.cal-root .btn { background: var(--accent); color: #fff; border: 0; padding: 11px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+.cal-root .btn:hover { background: var(--accent-dark); }
+.cal-root .btn:disabled { opacity: .5; cursor: default; }
+.cal-root .btn.sec { background: #fff; color: var(--accent-dark); border: 1px solid var(--accent); }
+.cal-root .btn.sec:hover { background: var(--panel2); }
+.cal-root .btn.bad { background: var(--bad); color: #fff; }
+.cal-root .btn.small { padding: 6px 10px; font-size: 13px; }
+.cal-root .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.cal-root .row.end { justify-content: flex-end; }
+.cal-root .sp { flex: 1; }
+.cal-root .lista-item { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; background: #fff; }
+.cal-root .lista-item .cod { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 16px; }
+.cal-root .lista-item .meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.cal-root .estado { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-align: center; align-self: start; white-space: nowrap; }
+.cal-root .estado.ok { background: #e3f4e8; color: var(--ok); }
+.cal-root .estado.warn { background: #fdf0d5; color: var(--warn); }
+.cal-root .estado.bad { background: #fbe4e4; color: var(--bad); }
+.cal-root .estado.na { background: var(--panel2); color: var(--muted); }
+.cal-root .puntos { display: grid; grid-template-columns: 28px 1fr 1fr 80px; gap: 6px; align-items: center; }
+.cal-root .puntos .h { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+.cal-root .dif { font-family: 'JetBrains Mono', monospace; font-size: 12px; text-align: right; color: var(--muted); }
+.cal-root .resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.cal-root .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; text-align: center; }
+.cal-root .kpi b { display: block; font-family: 'Bebas Neue', sans-serif; font-size: 34px; line-height: 1; }
+.cal-root .kpi span { font-size: 12px; color: var(--muted); }
+.cal-root .kpi.bad b { color: var(--bad); }
+.cal-root .kpi.warn b { color: var(--warn); }
+.cal-root .kpi.ok b { color: var(--ok); }
+.cal-root .vacio { color: var(--muted); text-align: center; padding: 20px; }
+.cal-root .nota { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.cal-root .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--accent-dark); color: #fff; padding: 10px 18px; border-radius: 8px; font-weight: 700; z-index: 10; max-width: 92vw; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,.2); }

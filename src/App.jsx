@@ -4,6 +4,7 @@ import { getDatabase, ref, set, update, get, onValue, off, query, orderByChild, 
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
+import Calibres from "./calibres/Calibres.jsx";
 
 const QR_CDN = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');`;
@@ -1526,7 +1527,7 @@ function CalidadView({ setView, operarios, setOperarios, plantillas, addPlantill
           </div>
         </div>
         <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:20 }}>
-          {[["plantillas","📋 PLANTILLAS"],["recibidos",`📥 RECIBIDOS${pendientes>0?` (${pendientes})`:""}`],["stats","📊 ESTADÍSTICAS"],["documentos","📄 DOCUMENTACIÓN"],["descartes","🗑️ DESCARTES"]].map(([key,lbl]) => (
+          {[["plantillas","📋 PLANTILLAS"],["recibidos",`📥 RECIBIDOS${pendientes>0?` (${pendientes})`:""}`],["stats","📊 ESTADÍSTICAS"],["documentos","📄 DOCUMENTACIÓN"],["descartes","🗑️ DESCARTES"],["calibres","📏 INSTRUMENTOS"]].map(([key,lbl]) => (
             <button key={key} onClick={() => setMainTab(key)}
               style={{ flex:"1 1 45%", minWidth:120, background:mainTab===key?"#7C3AED":"var(--surface)", border:`1px solid ${mainTab===key?"#7C3AED":"var(--border)"}`, borderRadius:12, padding:"12px 6px", color:mainTab===key?"white":"var(--muted)", fontFamily:"'Bebas Neue'", fontSize:13, letterSpacing:1, cursor:"pointer" }}>
               {lbl}
@@ -1535,6 +1536,7 @@ function CalidadView({ setView, operarios, setOperarios, plantillas, addPlantill
         </div>
         {mainTab==="plantillas" && <CalidadPlantillasView plantillas={plantillas} addPlantilla={addPlantilla} removePlantilla={removePlantilla} />}
         {mainTab==="recibidos"  && <CalidadRecibidosView registros={registros} plantillas={plantillas} updateRegistro={updateRegistro} />}
+        {mainTab==="calibres" && <Calibres embebido />}
         {mainTab==="stats"      && <CalidadStatsView registros={registros} plantillas={plantillas} />}
         {mainTab==="documentos" && <CalidadDocumentacionView documentos={documentos} addDocumento={addDocumento} removeDocumento={removeDocumento} />}
         {mainTab==="descartes"  && <DescartesView descartes={descartes||[]} machines={machines||[]} piezas={piezas||[]} />}
