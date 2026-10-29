@@ -60,7 +60,7 @@ function tolDe(inst, tols) {
 function normMaquinas(m) {
   const arr = Array.isArray(m) ? m : Object.values(m || {})
   const out = arr
-    .map((x) => (x && typeof x === 'object' ? (x.numero ?? x.id ?? x.nombre ?? x.name ?? '') : x))
+    .map((x) => (x && typeof x === 'object' ? (x.name ?? x.nombre ?? x.numero ?? x.id ?? '') : x))
     .map((x) => String(x ?? '').trim())
     .filter(Boolean)
   return [...new Set(out)].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
