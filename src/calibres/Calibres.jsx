@@ -3,6 +3,7 @@ import { escuchar, guardar, borrar, nuevoId, modo } from './db.js'
 import './calibres.css'
 import { certificadoPDF } from './certificado.js'
 import { etiquetasPDF } from './etiquetas.js'
+import { listadoMaquinaPDF } from './listado.js'
 
 const TIPOS = ['Vernier', 'Micrómetro', 'Alesómetro', 'Tapón P-NP', 'Otro']
 const MODALIDADES = ['Mecánico', 'Digital']
@@ -1418,6 +1419,20 @@ function PorMaquina({ lista, controles, tols, solicitudes, maquinas, irAControl,
   const titulo = maq === '__sin' ? 'Sin máquina asignada' : `Máquina ${maq}`
   const inst = sel ? lista.find((i) => i.id === sel) : null
 
+  const descargarPDF = () => {
+    const filas = items.map((i) => {
+      const e = estadoDe(i)
+      return {
+        codigo: i.codigo, tipo: i.tipo === 'Otro' ? i.tipoOtro || 'Otro' : i.tipo, modalidad: i.modalidad,
+        nroFab: i.nroFab, aCargo: i.aCargo, vencimiento: i.vencimiento,
+        estado: e.texto.startsWith('VIGENTE') ? 'VIGENTE' : e.texto.startsWith('VENCE EN') || e.texto === 'VENCE HOY' ? `VIGENTE (${e.texto.toLowerCase()})` : e.texto,
+        clase: e.clase, vigente: e.orden >= 2 && e.orden <= 4, porVencer: e.orden === 2 || e.orden === 3,
+      }
+    })
+    const hoy = hoyISO().split('-').reverse().join('/')
+    listadoMaquinaPDF(titulo, filas, hoy).catch(() => mostrar('No se pudo generar el PDF'))
+  }
+
   // ---- pantalla 3: ficha completa ----
   if (inst) {
     const e = estadoDe(inst)
@@ -1470,6 +1485,9 @@ function PorMaquina({ lista, controles, tols, solicitudes, maquinas, irAControl,
       <button className="btn small sec" onClick={() => setMaq(null)} style={{ marginBottom: 10 }}>◀ Todas las máquinas</button>
       <div className="card" style={{ paddingBottom: 4 }}>
         <h2 style={{ marginBottom: 4 }}>{titulo}: {items.length} instrumento{items.length === 1 ? '' : 's'}</h2>
+      </div>
+      <div className="row" style={{ marginBottom: 10 }}>
+        <button className="btn" onClick={descargarPDF}>Descargar PDF</button>
       </div>
       {items.length === 0 && <div className="card vacio">Esta máquina no tiene instrumentos asignados.</div>}
       {items.map((i) => {
