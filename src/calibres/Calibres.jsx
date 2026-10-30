@@ -878,16 +878,6 @@ function Tolerancias({ tols, mostrar }) {
   return (
     <div className="card">
       <h2>Tolerancias</h2>
-      <div className="co" style={{ marginBottom: 10 }}>
-        <b>No hace falta completar nada.</b> El sistema ya aplica el error máximo permitido del propio instrumento según su tipo y su lectura:
-        <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-          <li>Calibre mecánico (lectura 0,02): <b>0,03 mm</b> · lectura 0,05: 0,05 mm · digital (0,01): <b>0,02 mm</b> — ISO 13385-1 y fabricantes.</li>
-          <li>Micrómetro de exteriores: <b>0,004 mm</b> hasta 50 mm de rango, 0,005 hasta 100, 0,006 hasta 150… — ISO 3611.</li>
-          <li>Alesómetro: <b>0,010 mm</b> (lectura 0,01) o 0,003 mm (lectura más fina) — valor típico de fabricantes, sin norma de producto.</li>
-          <li>Tapón P-NP y otros: sin valor por defecto (depende de la pieza); cargar tolerancia propia.</li>
-        </ul>
-        Abajo podés <b>ajustar</b> un valor si Gerencia de Calidad o un cliente exigen otro. Es opcional y tiene prioridad sobre el por defecto.
-      </div>
       <h3 style={{ margin: '10px 0 6px', fontSize: 16 }}>Ajustes opcionales por tipo y modalidad</h3>
       <div className="nota" style={{ marginTop: 0, marginBottom: 10 }}>
         Error máximo permitido en mm. El control se aprueba si
