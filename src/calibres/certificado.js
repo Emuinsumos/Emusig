@@ -91,6 +91,11 @@ export async function certificadoPDF(c, inst) {
   if (c.tolerancia !== null && c.tolerancia !== undefined) {
     doc.text(`Tolerancia aplicada: ${n5(c.tolerancia)} mm`, M, y)
     y += 6
+    if (c.toleranciaOrigen) {
+      const lin = doc.splitTextToSize(`Base de la tolerancia: ${c.toleranciaOrigen}`, W - 2 * M)
+      doc.text(lin, M, y)
+      y += lin.length * 5 + 1
+    }
     doc.text('Criterio: error maximo + incertidumbre del patron <= tolerancia', M, y)
     y += 6
   } else {

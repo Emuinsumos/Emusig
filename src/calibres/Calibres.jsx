@@ -2,10 +2,14 @@ import { Component, useEffect, useMemo, useRef, useState } from 'react'
 import { escuchar, guardar, borrar, nuevoId, modo } from './db.js'
 import './calibres.css'
 import { certificadoPDF } from './certificado.js'
+import { certificadoRoscaPDF } from './certificadoRosca.js'
 import { etiquetasPDF } from './etiquetas.js'
 import { listadoMaquinaPDF } from './listado.js'
 
-const TIPOS = ['Vernier', 'Micrómetro', 'Alesómetro', 'Tapón P-NP', 'Otro']
+const TIPO_ROSCA = 'Tapón roscado'
+const TIPOS = ['Vernier', 'Micrómetro', 'Alesómetro', 'Tapón P-NP', TIPO_ROSCA, 'Otro']
+const esRosca = (i) => !!i && i.tipo === TIPO_ROSCA
+const certificadoDe = (c, inst) => (c.tipoControl === 'rosca' ? certificadoRoscaPDF(c, inst) : certificadoPDF(c, inst))
 const MODALIDADES = ['Mecánico', 'Digital']
 const PUNTOS = 5
 const AVISO_DIAS = 7
@@ -50,11 +54,40 @@ const limpiar = (s) => s.normalize('NFD').replace(/[^a-zA-Z0-9]/g, '')
 const tolKey = (tipo, modalidad) => `${limpiar(tipo)}__${limpiar(modalidad)}`
 // Tolerancia propia del instrumento (si la tiene) o la de la tabla de Calidad
 function tolDe(inst, tols) {
+  if (esRosca(inst)) return null
   const propia = num(inst.tolerancia)
   if (propia !== null) return { valor: propia, origen: 'del instrumento' }
   const t = tols[tolKey(inst.tipo, inst.modalidad)]
   const v = t ? num(t.valor) : null
-  return v !== null ? { valor: v, origen: `tabla (${inst.tipo} ${inst.modalidad.toLowerCase()})` } : null
+  if (v !== null) return { valor: v, origen: `ajuste de Gerencia de Calidad (${inst.tipo} ${inst.modalidad.toLowerCase()})` }
+  return mpeDefault(inst)
+}
+
+// Error máximo permitido POR DEFECTO, según el tipo de instrumento y su resolución (no depende de la pieza que mida).
+// Referencia: ISO 13385-1 (calibres), ISO 3611 (micrómetros de exteriores) y especificaciones de fabricantes.
+// Alesómetros: no hay norma de producto, se usa el valor típico de fabricantes. Tapón P-NP y otros: sin valor por defecto.
+const coma = (n) => String(n).replace('.', ',')
+function mpeDefault(inst) {
+  const res = num(inst.apreciacion)
+  const dig = inst.modalidad === 'Digital'
+  let v = null
+  let origen = ''
+  if (inst.tipo === 'Vernier') {
+    const r = res ?? (dig ? 0.01 : 0.02)
+    v = dig ? (r <= 0.01 ? 0.02 : 0.03) : r <= 0.02 ? 0.03 : r <= 0.05 ? 0.05 : 0.1
+    origen = `por defecto, calibre ${dig ? 'digital' : 'mecánico'} de lectura ${coma(r)} mm (ISO 13385-1 y fabricantes)`
+  } else if (inst.tipo === 'Micrómetro') {
+    const rango = Math.min(num(inst.rango) ?? 25, 300)
+    v = rango <= 50 ? 0.004 : Math.round((0.004 + 0.001 * Math.ceil((rango - 50) / 50)) * 1e6) / 1e6
+    origen = `por defecto, micrómetro de exteriores hasta ${rango} mm (ISO 3611)`
+  } else if (inst.tipo === 'Alesómetro') {
+    const r = res ?? 0.01
+    v = r >= 0.01 ? 0.01 : 0.003
+    origen = `por defecto, alesómetro de lectura ${coma(r)} mm (valor típico de fabricantes; sin norma de producto)`
+  }
+  if (v === null) return null
+  if (inst.tipo !== 'Micrómetro' && res !== null && res > v) { v = res; origen += ', ajustado a la apreciación' }
+  return { valor: v, origen }
 }
 
 // Lista de máquinas: acepta array de textos/objetos o un objeto indexado; devuelve textos únicos ordenados.
@@ -68,6 +101,21 @@ function normMaquinas(m) {
 }
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 const MESES_C = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+const n5 = (v) => (v === null || v === undefined || Number.isNaN(v) ? '—' : Number(v).toFixed(5))
+const limTxt = (a, b) => (num(a) !== null && num(b) !== null ? `${num(a)} a ${num(b)} mm` : 'sin cargar')
+// Alambre ideal (toca los flancos en el diámetro medio): d = P / (2 cos(α/2))
+function alambreIdealDe(f) {
+  const P = num(f.paso)
+  const a = num(f.angulo) ?? 60
+  if (P === null || P <= 0) return ''
+  return String(Math.round((P / (2 * Math.cos((a * Math.PI) / 360))) * 1000) / 1000)
+}
+// Diámetro medio por tres varillas: E = M − d (1 + 1/sen(α/2)) + (P/2) cot(α/2)
+function medioTresVarillas(M, d, P, angulo) {
+  const a = ((num(angulo) ?? 60) * Math.PI) / 360
+  return M - d * (1 + 1 / Math.sin(a)) + (P / 2) / Math.tan(a)
+}
 
 // ---------- estado ----------
 function estadoDe(i) {
@@ -167,7 +215,8 @@ function CalibresApp({ embebido = false, operario = '', maquinas = [] }) {
 
   const irAControl = (id) => {
     setControlPara(id)
-    setTab('control')
+    const inst = lista.find((i) => i.id === id)
+    setTab(esRosca(inst) ? 'rosca' : 'control')
   }
 
   const nVenc = porVencer.length
@@ -192,6 +241,7 @@ function CalibresApp({ embebido = false, operario = '', maquinas = [] }) {
         </button>
         <button className={`tab ${tab === 'escanear' ? 'on' : ''}`} onClick={() => setTab('escanear')}>Escanear</button>
         <button className={`tab ${tab === 'instrumentos' ? 'on' : ''}`} onClick={() => { setTab('instrumentos'); setEditando(null) }}>Instrumentos</button>
+        <button className={`tab ${tab === 'rosca' ? 'on' : ''}`} onClick={() => setTab('rosca')}>Tapones de rosca</button>
         <button className={`tab ${tab === 'control' ? 'on' : ''}`} onClick={() => setTab('control')}>Registrar control</button>
         <button className={`tab ${tab === 'historial' ? 'on' : ''}`} onClick={() => setTab('historial')}>Historial</button>
         <button className={`tab ${tab === 'etiquetas' ? 'on' : ''}`} onClick={() => setTab('etiquetas')}>Etiquetas</button>
@@ -222,13 +272,21 @@ function CalibresApp({ embebido = false, operario = '', maquinas = [] }) {
       )}
       {tab === 'control' && (
         <RegistrarControl
-          lista={lista.filter((i) => i.activo !== false)}
+          lista={lista.filter((i) => i.activo !== false && !esRosca(i))}
           tols={tols}
           solicitudes={solicitudes}
           inicial={controlPara}
           operario={operario}
           mostrar={mostrar}
           alTerminar={() => { setControlPara(''); setTab('panel') }}
+        />
+      )}
+      {tab === 'rosca' && (
+        <Roscas
+          lista={lista} controles={controles} solicitudes={solicitudes} inicial={controlPara} operario={operario} mostrar={mostrar}
+          nuevo={() => { setEditando('nuevo-rosca'); setTab('instrumentos') }}
+          editar={(id) => { setEditando(id); setTab('instrumentos') }}
+          limpiarInicial={() => setControlPara('')}
         />
       )}
       {tab === 'historial' && <Historial lista={lista} controles={controles} mostrar={mostrar} />}
@@ -316,7 +374,7 @@ function Panel({ lista, porVencer, permiso, activarAvisos, irAControl, solPend, 
 // ---------- Instrumentos ----------
 const VACIO = {
   codigo: '', tipo: 'Vernier', tipoOtro: '', modalidad: 'Mecánico', nroFab: '', marca: '',
-  frecMeses: 12, aCargo: '', apreciacion: '', tolerancia: '', maquina: '', ultimaRevision: '', vencimiento: '', activo: true, rechazado: false,
+  frecMeses: 12, aCargo: '', apreciacion: '', tolerancia: '', rango: '', rosca: '', paso: '', angulo: '60', alambre: '', pasaMin: '', pasaMax: '', nopasaMin: '', nopasaMax: '', maquina: '', ultimaRevision: '', vencimiento: '', activo: true, rechazado: false,
 }
 
 function Instrumentos({ lista, tols, maquinas, editando, setEditando, irAControl, mostrar }) {
@@ -326,12 +384,12 @@ function Instrumentos({ lista, tols, maquinas, editando, setEditando, irAControl
   const [abierto, setAbierto] = useState('')
 
   if (editando) {
-    const base = editando === 'nuevo' ? VACIO : lista.find((i) => i.id === editando) || VACIO
+    const base = editando === 'nuevo' ? VACIO : editando === 'nuevo-rosca' ? { ...VACIO, tipo: TIPO_ROSCA } : lista.find((i) => i.id === editando) || VACIO
     return (
       <FormInstrumento
         key={editando}
         inicial={base}
-        id={editando === 'nuevo' ? null : editando}
+        id={editando === 'nuevo' || editando === 'nuevo-rosca' ? null : editando}
         lista={lista}
         tols={tols}
         maquinas={maquinas}
@@ -392,7 +450,7 @@ function Instrumentos({ lista, tols, maquinas, editando, setEditando, irAControl
             <div>
               <div className="cod">{i.codigo}</div>
               <div className="meta">
-                {i.tipo === 'Otro' ? i.tipoOtro || 'Otro' : i.tipo} · {i.modalidad} {i.marca && `· ${i.marca}`} {i.nroFab && `· N° ${i.nroFab}`}
+                {i.tipo === 'Otro' ? i.tipoOtro || 'Otro' : i.tipo}{esRosca(i) ? ` ${i.rosca || ''}` : ` · ${i.modalidad}`} {i.marca && `· ${i.marca}`} {i.nroFab && `· N° ${i.nroFab}`}
               </div>
               <div className="meta">Máquina: {i.maquina || 'sin asignar'} · A cargo: {i.aCargo || '—'}</div>
               <div className="meta">Última rev.: {fmt(i.ultimaRevision)} · Vence: {fmt(i.vencimiento)}</div>
@@ -427,12 +485,24 @@ function FormInstrumento({ inicial, id, lista, tols, maquinas, alTerminar }) {
   }
 
   const deTabla = tols[tolKey(f.tipo, f.modalidad)]
+  const roscado = f.tipo === TIPO_ROSCA
+  const tolAuto = !roscado ? tolDe({ ...f, tolerancia: '' }, tols) : null
+  const alambreIdeal = alambreIdealDe(f)
 
   const guardarInst = async () => {
     const codigo = f.codigo.trim()
     if (!codigo) return setErr('Falta el código del instrumento.')
     if (lista.some((i) => i.id !== id && i.codigo.toLowerCase() === codigo.toLowerCase())) return setErr('Ya existe un instrumento con ese código.')
     if (f.tipo === 'Otro' && !f.tipoOtro.trim()) return setErr('Indicá qué tipo de instrumento es.')
+    if (roscado) {
+      const p = num(f.paso)
+      if (p === null || p <= 0) return setErr('Indicá el paso de la rosca (mm).')
+      for (const [a, b, n] of [['pasaMin', 'pasaMax', 'PASA'], ['nopasaMin', 'nopasaMax', 'NO PASA']]) {
+        const lo = num(f[a]), hi = num(f[b])
+        if ((lo === null) !== (hi === null)) return setErr(`Completá el mínimo y el máximo del lado ${n}, o dejá los dos vacíos.`)
+        if (lo !== null && lo >= hi) return setErr(`En ${n}, el mínimo tiene que ser menor que el máximo.`)
+      }
+    }
     const { id: _omit, ...datos } = f
     await guardar('instrumentos', id || nuevoId(), { ...datos, codigo, frecMeses: Number(f.frecMeses) || 0 })
     alTerminar(id ? 'Instrumento actualizado' : 'Instrumento cargado')
@@ -464,12 +534,14 @@ function FormInstrumento({ inicial, id, lista, tols, maquinas, alTerminar }) {
         {f.tipo === 'Otro' && (
           <div><label>¿Cuál?</label><input value={f.tipoOtro} onChange={(e) => set('tipoOtro', e.target.value)} placeholder="Ej: reloj comparador" /></div>
         )}
-        <div>
-          <label>Modalidad</label>
-          <select value={f.modalidad} onChange={(e) => set('modalidad', e.target.value)}>
-            {MODALIDADES.map((t) => <option key={t}>{t}</option>)}
-          </select>
-        </div>
+        {!roscado && (
+          <div>
+            <label>Modalidad</label>
+            <select value={f.modalidad} onChange={(e) => set('modalidad', e.target.value)}>
+              {MODALIDADES.map((t) => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+        )}
         <div><label>N° de fabricación</label><input value={f.nroFab} onChange={(e) => set('nroFab', e.target.value)} /></div>
         <div><label>Marca</label><input value={f.marca} onChange={(e) => set('marca', e.target.value)} /></div>
         <div>
@@ -484,16 +556,56 @@ function FormInstrumento({ inicial, id, lista, tols, maquinas, alTerminar }) {
           )}
         </div>
         <div><label>A cargo de</label><input value={f.aCargo} onChange={(e) => set('aCargo', e.target.value)} /></div>
-        <div><label>Apreciación (mm)</label><input inputMode="decimal" value={f.apreciacion} onChange={(e) => set('apreciacion', e.target.value)} placeholder="0,01" /></div>
-        <div>
-          <label>Tolerancia propia (mm) — opcional</label>
-          <input inputMode="decimal" value={f.tolerancia} onChange={(e) => set('tolerancia', e.target.value)} placeholder={deTabla ? `usa la tabla: ${deTabla.valor}` : 'sin definir en la tabla'} />
-        </div>
+        {!roscado && (
+          <>
+            <div><label>Apreciación (mm)</label><input inputMode="decimal" value={f.apreciacion} onChange={(e) => set('apreciacion', e.target.value)} placeholder="0,01" /></div>
+            {f.tipo === 'Micrómetro' && (
+              <div><label>Rango máximo (mm) — opcional</label><input inputMode="decimal" value={f.rango} onChange={(e) => set('rango', e.target.value)} placeholder="25, 50, 75, 100…" /></div>
+            )}
+            <div>
+              <label>Tolerancia propia (mm) — opcional</label>
+              <input inputMode="decimal" value={f.tolerancia} onChange={(e) => set('tolerancia', e.target.value)} placeholder={tolAuto ? `automática: ${tolAuto.valor}` : 'sin valor por defecto'} />
+            </div>
+          </>
+        )}
+        {roscado && (
+          <>
+            <div><label>Rosca (designación)</label><input value={f.rosca} onChange={(e) => set('rosca', e.target.value)} placeholder="Ej: M10x1,5 6H" /></div>
+            <div><label>Paso P (mm)</label><input inputMode="decimal" value={f.paso} onChange={(e) => set('paso', e.target.value)} placeholder="1,5" /></div>
+            <div>
+              <label>Ángulo del flanco</label>
+              <select value={f.angulo || '60'} onChange={(e) => set('angulo', e.target.value)}>
+                <option value="60">60° (métrica ISO / UN)</option>
+                <option value="55">55° (Whitworth / gas)</option>
+                <option value="30">30° (trapezoidal)</option>
+                <option value="29">29° (Acme)</option>
+              </select>
+            </div>
+            <div><label>Diámetro del alambre habitual (mm)</label><input inputMode="decimal" value={f.alambre} onChange={(e) => set('alambre', e.target.value)} placeholder={alambreIdeal ? `ideal: ${alambreIdeal}` : ''} /></div>
+            <div><label>PASA: diámetro medio mínimo (mm)</label><input inputMode="decimal" value={f.pasaMin} onChange={(e) => set('pasaMin', e.target.value)} /></div>
+            <div><label>PASA: diámetro medio máximo (mm)</label><input inputMode="decimal" value={f.pasaMax} onChange={(e) => set('pasaMax', e.target.value)} /></div>
+            <div><label>NO PASA: diámetro medio mínimo (mm)</label><input inputMode="decimal" value={f.nopasaMin} onChange={(e) => set('nopasaMin', e.target.value)} /></div>
+            <div><label>NO PASA: diámetro medio máximo (mm)</label><input inputMode="decimal" value={f.nopasaMax} onChange={(e) => set('nopasaMax', e.target.value)} /></div>
+          </>
+        )}
         <div><label>Frecuencia de control (meses)</label><input type="number" min="1" value={f.frecMeses} onChange={(e) => cambiaRevisionOFrec('frecMeses', e.target.value)} /></div>
         <div><label>Última revisión</label><input type="date" value={f.ultimaRevision} onChange={(e) => cambiaRevisionOFrec('ultimaRevision', e.target.value)} /></div>
         <div><label>Fecha de vencimiento</label><input type="date" value={f.vencimiento} onChange={(e) => set('vencimiento', e.target.value)} /></div>
       </div>
-      <div className="nota">El vencimiento se calcula solo (última revisión + frecuencia), pero lo podés corregir a mano. Si dejás la tolerancia propia vacía, se usa la de la pestaña Tolerancias para este tipo y modalidad.</div>
+      <div className="nota">El vencimiento se calcula solo (última revisión + frecuencia), pero lo podés corregir a mano.</div>
+      {!roscado && (
+        <div className="nota">
+          <b>Tolerancia automática:</b>{' '}
+          {tolAuto
+            ? <>el sistema usa <b>{tolAuto.valor} mm</b> ({tolAuto.origen}). No hace falta cargar nada: solo completá la tolerancia propia si este instrumento necesita otro valor.</>
+            : <>para este tipo no hay un valor por defecto (depende de la pieza o del ajuste). Cargá la tolerancia propia, o el control se decidirá a mano.</>}
+        </div>
+      )}
+      {roscado && (
+        <div className="nota">
+          Los límites de diámetro medio PASA y NO PASA salen del plano o del certificado del tapón (norma de calibres de rosca). El control se hace con el método de las tres varillas en la pestaña <b>Tapones de rosca</b>.
+        </div>
+      )}
       {err && <div style={{ color: 'var(--bad)', marginTop: 8 }}>{err}</div>}
       <div className="row" style={{ marginTop: 14 }}>
         <button className="btn" onClick={guardarInst}>Guardar</button>
@@ -550,7 +662,7 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
     await guardar('controles', id, {
       instrumentoId: inst.id, codigo: inst.codigo, fecha, galga: galga.trim(), incertidumbre: num(incert),
       puntos, resultado, resultadoAuto: !!auto, errorMax: puntos.length ? maxErr : null,
-      tolerancia: tolInfo ? tolInfo.valor : null,
+      tolerancia: tolInfo ? tolInfo.valor : null, toleranciaOrigen: tolInfo ? tolInfo.origen : '',
       responsable: resp.trim() || inst.aCargo || '', observaciones: obs.trim(), creado: Date.now(),
       proximoVencimiento: vence,
       // datos del instrumento al momento del control (para el certificado)
@@ -626,7 +738,7 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
           ) : (
             <>
               <div style={{ color: 'var(--warn)', fontSize: 14 }}>
-                Este instrumento no tiene tolerancia definida (ni propia ni en la tabla de Calidad). El resultado hay que elegirlo a mano.
+                Este tipo de instrumento no tiene tolerancia por defecto ni propia: el resultado hay que elegirlo a mano. Cargá la tolerancia propia en su ficha para que sea automático.
               </div>
               {cargados > 0 && <div className="nota">Error máximo: <b className="mono">{maxErr.toFixed(5)}</b> mm.</div>}
               <div style={{ marginTop: 8 }}>
@@ -685,7 +797,7 @@ function Historial({ lista, controles, mostrar }) {
 
   const certificado = async (c) => {
     try {
-      await certificadoPDF(c, lista.find((i) => i.id === c.instrumentoId))
+      await certificadoDe(c, lista.find((i) => i.id === c.instrumentoId))
     } catch (e) {
       console.error(e)
       mostrar('No se pudo generar el PDF')
@@ -709,6 +821,11 @@ function Historial({ lista, controles, mostrar }) {
             <div>
               <div className="cod">{c.codigo} <span className="meta">· {fmt(c.fecha)}</span></div>
               <div className="meta">Patrón: {c.galga || '—'} · Incert.: {c.incertidumbre ?? '—'} · Resp.: {c.responsable || '—'}</div>
+              {c.tipoControl === 'rosca' && c.lados && (
+                <div className="meta">
+                  {c.rosca || 'Rosca'} · E PASA {n5(c.lados.pasa?.E)} mm · E NO PASA {n5(c.lados.nopasa?.E)} mm
+                </div>
+              )}
               {(c.puntos || []).length > 0 && (
                 <div className="meta">
                   {c.puntos.length} puntos · error máx. {maxE.toFixed(5)} mm{c.tolerancia != null ? ` · tolerancia ${c.tolerancia} mm` : ''}
@@ -733,7 +850,7 @@ function Tolerancias({ tols, mostrar }) {
   const [err, setErr] = useState('')
   const [valores, setValores] = useState({})
 
-  const filas = TIPOS.flatMap((t) => MODALIDADES.map((m) => ({ tipo: t, modalidad: m, key: tolKey(t, m) })))
+  const filas = TIPOS.filter((t) => t !== TIPO_ROSCA).flatMap((t) => MODALIDADES.map((m) => ({ tipo: t, modalidad: m, key: tolKey(t, m) })))
 
   useEffect(() => {
     const v = {}
@@ -760,10 +877,21 @@ function Tolerancias({ tols, mostrar }) {
 
   return (
     <div className="card">
-      <h2>Tolerancias por tipo y modalidad</h2>
+      <h2>Tolerancias</h2>
+      <div className="co" style={{ marginBottom: 10 }}>
+        <b>No hace falta completar nada.</b> El sistema ya aplica el error máximo permitido del propio instrumento según su tipo y su lectura:
+        <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+          <li>Calibre mecánico (lectura 0,02): <b>0,03 mm</b> · lectura 0,05: 0,05 mm · digital (0,01): <b>0,02 mm</b> — ISO 13385-1 y fabricantes.</li>
+          <li>Micrómetro de exteriores: <b>0,004 mm</b> hasta 50 mm de rango, 0,005 hasta 100, 0,006 hasta 150… — ISO 3611.</li>
+          <li>Alesómetro: <b>0,010 mm</b> (lectura 0,01) o 0,003 mm (lectura más fina) — valor típico de fabricantes, sin norma de producto.</li>
+          <li>Tapón P-NP y otros: sin valor por defecto (depende de la pieza); cargar tolerancia propia.</li>
+        </ul>
+        Abajo podés <b>ajustar</b> un valor si Gerencia de Calidad o un cliente exigen otro. Es opcional y tiene prioridad sobre el por defecto.
+      </div>
+      <h3 style={{ margin: '10px 0 6px', fontSize: 16 }}>Ajustes opcionales por tipo y modalidad</h3>
       <div className="nota" style={{ marginTop: 0, marginBottom: 10 }}>
-        Error máximo permitido en mm, lo carga Gerencia de Calidad según su procedimiento. El control se aprueba si
-        <b> error máximo + incertidumbre del patrón ≤ tolerancia</b>. Un instrumento puede tener además una tolerancia propia, que tiene prioridad.
+        Error máximo permitido en mm. El control se aprueba si
+        <b> error máximo + incertidumbre del patrón ≤ tolerancia</b>. Orden de prioridad: 1) tolerancia propia del instrumento, 2) un ajuste de esta tabla, 3) el valor por defecto de arriba. Los tapones roscados tienen su propio control.
       </div>
       {filas.map((f) => (
         <div className="row" key={f.key} style={{ marginBottom: 8 }}>
@@ -901,11 +1029,13 @@ function Escaner({ lista, controles, tols, irAControl, mostrar, modo = 'calidad'
           ['Marca', inst.marca || '—'],
           ['N° de fabricación', inst.nroFab || '—'],
           ['A cargo de', inst.aCargo || '—'],
-          ['Apreciación', inst.apreciacion ? `${inst.apreciacion} mm` : '—'],
+          ...(esRosca(inst)
+            ? [['Rosca', `${inst.rosca || '—'} · paso ${inst.paso || '—'} mm`], ['Límites PASA', limTxt(inst.pasaMin, inst.pasaMax)], ['Límites NO PASA', limTxt(inst.nopasaMin, inst.nopasaMax)]]
+            : [['Apreciación', inst.apreciacion ? `${inst.apreciacion} mm` : '—']]),
           ['Frecuencia de control', inst.frecMeses ? `${inst.frecMeses} meses` : '—'],
           ['Última revisión', fmt(inst.ultimaRevision)],
           ['Vencimiento', fmt(inst.vencimiento)],
-          ['Tolerancia', t ? `${t.valor} mm (${t.origen})` : 'sin definir'],
+          ...(esRosca(inst) ? [] : [['Tolerancia', t ? `${t.valor} mm (${t.origen})` : 'sin definir']]),
         ].filter(([k]) => modo !== 'operador' || k !== 'Tolerancia')
         const pendInst = Object.values(solicitudes).filter((s) => s.instrumentoId === inst.id && s.estado === 'pendiente')
         return (
@@ -942,7 +1072,7 @@ function Escaner({ lista, controles, tols, irAControl, mostrar, modo = 'calidad'
                 ? <button className="btn" onClick={() => setSolicitando(true)} disabled={solicitando}>Solicitar revisión</button>
                 : <button className="btn" onClick={() => irAControl(inst.id)}>Registrar control</button>}
               {ultimo && modo !== 'operador' && (
-                <button className="btn sec" onClick={() => certificadoPDF(ultimo, inst).catch(() => mostrar('No se pudo generar el PDF'))}>
+                <button className="btn sec" onClick={() => certificadoDe(ultimo, inst).catch(() => mostrar('No se pudo generar el PDF'))}>
                   Último certificado
                 </button>
               )}
@@ -1267,11 +1397,13 @@ function FichaDatos({ inst, tols }) {
     ['Marca', inst.marca || '—'],
     ['N° de fabricación', inst.nroFab || '—'],
     ['A cargo de', inst.aCargo || '—'],
-    ['Apreciación', inst.apreciacion ? `${inst.apreciacion} mm` : '—'],
+    ...(esRosca(inst)
+      ? [['Rosca', `${inst.rosca || '—'} · paso ${inst.paso || '—'} mm · ${inst.angulo || 60}°`], ['Límites PASA', limTxt(inst.pasaMin, inst.pasaMax)], ['Límites NO PASA', limTxt(inst.nopasaMin, inst.nopasaMax)]]
+      : [['Apreciación', inst.apreciacion ? `${inst.apreciacion} mm` : '—']]),
     ['Frecuencia de control', inst.frecMeses ? `${inst.frecMeses} meses` : '—'],
     ['Última revisión', fmt(inst.ultimaRevision)],
     ['Vencimiento', fmt(inst.vencimiento)],
-    ['Tolerancia', t ? `${t.valor} mm (${t.origen})` : 'sin definir'],
+    ...(esRosca(inst) ? [] : [['Tolerancia', t ? `${t.valor} mm (${t.origen})` : 'sin definir']]),
   ]
   return (
     <div style={{ margin: '8px 0', padding: '4px 10px', background: 'var(--panel)', borderRadius: 8 }}>
@@ -1456,7 +1588,7 @@ function PorMaquina({ lista, controles, tols, solicitudes, maquinas, irAControl,
           )}
           <div className="row" style={{ marginTop: 12 }}>
             <button className="btn" onClick={() => irAControl(inst.id)}>Registrar control</button>
-            {ultimo && <button className="btn sec" onClick={() => certificadoPDF(ultimo, inst).catch(() => mostrar('No se pudo generar el PDF'))}>Último certificado</button>}
+            {ultimo && <button className="btn sec" onClick={() => certificadoDe(ultimo, inst).catch(() => mostrar('No se pudo generar el PDF'))}>Último certificado</button>}
             <button className="btn sec" onClick={() => etiquetasPDF([inst]).catch(() => mostrar('No se pudo generar la etiqueta'))}>Etiqueta</button>
             <button className="btn sec" onClick={() => editar(inst.id)}>Editar</button>
           </div>
@@ -1504,5 +1636,202 @@ function PorMaquina({ lista, controles, tols, solicitudes, maquinas, irAControl,
         )
       })}
     </>
+  )
+}
+
+// ---------- Tapones roscados: lista, control por tres varillas e historial (aparte de los demás instrumentos) ----------
+function Roscas({ lista, controles, solicitudes, inicial, operario, mostrar, nuevo, editar, limpiarInicial }) {
+  const [vista, setVista] = useState(inicial ? 'control' : 'lista')
+  const [instId, setInstId] = useState(inicial || '')
+  const roscados = lista.filter((i) => esRosca(i) && i.activo !== false).sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
+
+  const abrirControl = (id) => { setInstId(id); setVista('control') }
+
+  if (vista === 'control') {
+    return (
+      <ControlRosca
+        lista={roscados} solicitudes={solicitudes} inicial={instId} operario={operario} mostrar={mostrar}
+        alTerminar={() => { limpiarInicial(); setInstId(''); setVista('lista') }}
+      />
+    )
+  }
+
+  const hist = Object.entries(controles).map(([id, v]) => ({ ...v, id })).filter((x) => x.tipoControl === 'rosca').sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.creado || 0) - (a.creado || 0))
+
+  if (vista === 'historial') {
+    return (
+      <>
+        <button className="btn small sec" onClick={() => setVista('lista')} style={{ marginBottom: 10 }}>◀ Tapones de rosca</button>
+        <div className="card" style={{ paddingBottom: 4 }}><h2 style={{ marginBottom: 4 }}>Historial de controles de rosca ({hist.length})</h2></div>
+        {hist.length === 0 && <div className="card vacio">Todavía no hay controles de rosca.</div>}
+        {hist.map((h) => {
+          const inst = lista.find((i) => i.id === h.instrumentoId)
+          return (
+            <div className="lista-item" key={h.id}>
+              <div>
+                <div className="cod">{h.codigo} <span className="meta">· {fmt(h.fecha)} · {h.rosca || ''}</span></div>
+                <div className="meta">E PASA {n5(h.lados?.pasa?.E)} mm ({h.lados?.pasa?.ok === false ? 'no cumple' : 'cumple'}) · E NO PASA {n5(h.lados?.nopasa?.E)} mm ({h.lados?.nopasa?.ok === false ? 'no cumple' : 'cumple'})</div>
+                <div className="meta">Resp.: {h.responsable || '—'}{h.observaciones ? ` · ${h.observaciones}` : ''}</div>
+                <div className="row" style={{ marginTop: 8 }}>
+                  <button className="btn small" onClick={() => certificadoRoscaPDF(h, inst).catch(() => mostrar('No se pudo generar el PDF'))}>Certificado PDF</button>
+                  <button className="btn small bad" onClick={async () => { if (window.confirm('¿Borrar este control?')) { await borrar('controles', h.id); mostrar('Control borrado') } }}>Borrar</button>
+                </div>
+              </div>
+              <span className={`estado ${h.resultado === 'Aprobado' ? 'ok' : 'bad'}`}>{String(h.resultado || '').toUpperCase()}</span>
+            </div>
+          )
+        })}
+      </>
+    )
+  }
+
+  return (
+    <>
+      <div className="card">
+        <h2>Tapones de rosca</h2>
+        <div className="nota" style={{ marginTop: 0 }}>
+          Se controlan por el <b>diámetro medio</b> con el método de las tres varillas, en los lados PASA y NO PASA. Este control está separado del de los demás instrumentos.
+        </div>
+        <div className="row" style={{ marginTop: 10 }}>
+          <button className="btn" onClick={nuevo}>+ Nuevo tapón de rosca</button>
+          <button className="btn sec" onClick={() => setVista('historial')}>Historial</button>
+        </div>
+      </div>
+      {roscados.length === 0 && <div className="card vacio">Todavía no hay tapones de rosca cargados.</div>}
+      {roscados.map((i) => {
+        const e = estadoDe(i)
+        return (
+          <div className="lista-item" key={i.id}>
+            <div>
+              <div className="cod">{i.codigo} <span className="meta">· {i.rosca || 'sin designación'}</span></div>
+              <div className="meta">Paso {i.paso || '—'} mm · {i.angulo || 60}° · Máquina: {i.maquina || 'sin asignar'} · A cargo: {i.aCargo || '—'}</div>
+              <div className="meta">PASA {limTxt(i.pasaMin, i.pasaMax)} · NO PASA {limTxt(i.nopasaMin, i.nopasaMax)}</div>
+              <div className="meta">Última rev.: {fmt(i.ultimaRevision)} · Vence: {fmt(i.vencimiento)}</div>
+              <div className="row" style={{ marginTop: 8 }}>
+                <button className="btn small" onClick={() => abrirControl(i.id)}>Registrar control</button>
+                <button className="btn small sec" onClick={() => editar(i.id)}>Editar</button>
+              </div>
+            </div>
+            <span className={`estado ${e.clase}`}>{e.texto}</span>
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
+function ControlRosca({ lista, solicitudes, inicial, operario, mostrar, alTerminar }) {
+  const [instId, setInstId] = useState(inicial || '')
+  const [fecha, setFecha] = useState(hoyISO())
+  const [incert, setIncert] = useState('')
+  const [lados, setLados] = useState({ pasa: { d: '', M: '' }, nopasa: { d: '', M: '' } })
+  const [manual, setManual] = useState('Aprobado')
+  const [resp, setResp] = useState(operario || '')
+  const [obs, setObs] = useState('')
+  const [err, setErr] = useState('')
+  const inst = lista.find((i) => i.id === instId)
+
+  // al elegir el tapón, proponer el alambre habitual (o el ideal)
+  useEffect(() => {
+    if (!inst) return
+    const d = inst.alambre || alambreIdealDe(inst)
+    setLados((p) => ({ pasa: { ...p.pasa, d: p.pasa.d || d }, nopasa: { ...p.nopasa, d: p.nopasa.d || d } }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instId])
+
+  const setLado = (k, campo, v) => setLados((p) => ({ ...p, [k]: { ...p[k], [campo]: v } }))
+  const P = inst ? num(inst.paso) : null
+  const U = num(incert) ?? 0
+  const evaluar = (k, min, max) => {
+    const d = num(lados[k].d), M = num(lados[k].M)
+    if (!inst || P === null || d === null || M === null) return null
+    const E = medioTresVarillas(M, d, P, inst.angulo)
+    const lo = num(min), hi = num(max)
+    const ok = lo === null || hi === null ? null : E - U >= lo - 1e-9 && E + U <= hi + 1e-9
+    return { alambre: d, cota: M, E, min: lo, max: hi, ok }
+  }
+  const rP = inst ? evaluar('pasa', inst.pasaMin, inst.pasaMax) : null
+  const rN = inst ? evaluar('nopasa', inst.nopasaMin, inst.nopasaMax) : null
+  const completo = !!rP && !!rN
+  const auto = completo && rP.ok !== null && rN.ok !== null ? (rP.ok && rN.ok ? 'Aprobado' : 'Rechazado') : null
+  const resultado = auto || manual
+
+  const guardarControl = async () => {
+    if (!inst) return setErr('Elegí el tapón.')
+    if (!completo) return setErr('Cargá el alambre y la cota medida de los dos lados (PASA y NO PASA).')
+    const vence = resultado === 'Aprobado' ? sumarMeses(fecha, inst.frecMeses) || inst.vencimiento || '' : ''
+    const id = nuevoId()
+    const lado = (r) => ({ alambre: r.alambre, cota: r.cota, E: r.E, min: r.min, max: r.max, ok: r.ok })
+    await guardar('controles', id, {
+      tipoControl: 'rosca', instrumentoId: inst.id, codigo: inst.codigo, fecha, incertidumbre: num(incert),
+      rosca: inst.rosca || '', paso: num(inst.paso), angulo: num(inst.angulo) ?? 60,
+      lados: { pasa: lado(rP), nopasa: lado(rN) }, puntos: [], errorMax: null, tolerancia: null,
+      resultado, resultadoAuto: !!auto, responsable: resp.trim() || inst.aCargo || '', observaciones: obs.trim(), creado: Date.now(),
+      proximoVencimiento: vence, tipoTexto: TIPO_ROSCA, modalidad: inst.modalidad || '', marca: inst.marca || '', nroFab: inst.nroFab || '', aCargo: inst.aCargo || '',
+    })
+    const { id: _omit, ...datos } = inst
+    if (resultado === 'Aprobado') await guardar('instrumentos', inst.id, { ...datos, rechazado: false, ultimaRevision: fecha, vencimiento: vence })
+    else await guardar('instrumentos', inst.id, { ...datos, rechazado: true, ultimaRevision: fecha })
+    for (const [sid, s] of Object.entries(solicitudes || {}).filter(([, s]) => s.instrumentoId === inst.id && s.estado === 'pendiente')) {
+      await guardar('solicitudes', sid, { ...s, estado: 'atendida', atendidaEn: Date.now(), atendidaPor: 'control', controlId: id })
+    }
+    mostrar(resultado === 'Aprobado' ? 'Control aprobado. Vencimiento actualizado.' : 'Control rechazado registrado.')
+    alTerminar()
+  }
+
+  const bloque = (k, titulo, r, min, max) => (
+    <div className="card" style={{ background: 'var(--panel)' }}>
+      <h2>{titulo}</h2>
+      <div className="grid">
+        <div><label>Diámetro del alambre d (mm)</label><input inputMode="decimal" value={lados[k].d} onChange={(e) => setLado(k, 'd', e.target.value)} /></div>
+        <div><label>Cota medida sobre alambres M (mm)</label><input inputMode="decimal" value={lados[k].M} onChange={(e) => setLado(k, 'M', e.target.value)} /></div>
+      </div>
+      <div className="nota">
+        Límites del diámetro medio: <b>{limTxt(min, max)}</b>
+        {r && <> · Diámetro medio calculado E = <b className="mono">{r.E.toFixed(5)} mm</b> {r.ok === null ? '(sin límites cargados)' : r.ok ? '· CUMPLE' : '· NO CUMPLE'}</>}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="card">
+      <h2>Registrar control de tapón roscado</h2>
+      <div className="grid">
+        <div>
+          <label>Tapón de rosca</label>
+          <select value={instId} onChange={(e) => setInstId(e.target.value)}>
+            <option value="">— elegir —</option>
+            {lista.map((i) => <option key={i.id} value={i.id}>{i.codigo} · {i.rosca || 'sin designación'}</option>)}
+          </select>
+        </div>
+        <div><label>Fecha de control</label><input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} /></div>
+        <div><label>Incertidumbre de la medición (mm)</label><input inputMode="decimal" value={incert} onChange={(e) => setIncert(e.target.value)} placeholder="0,00000" /></div>
+        <div><label>Responsable</label><input value={resp} onChange={(e) => setResp(e.target.value)} placeholder={inst?.aCargo || ''} /></div>
+      </div>
+      {inst && (
+        <>
+          <div className="nota">{inst.rosca || 'Rosca'} · paso {inst.paso} mm · flanco {inst.angulo || 60}°{alambreIdealDe(inst) ? ` · alambre ideal ${alambreIdealDe(inst)} mm` : ''}</div>
+          {bloque('pasa', 'Lado PASA', rP, inst.pasaMin, inst.pasaMax)}
+          {bloque('nopasa', 'Lado NO PASA', rN, inst.nopasaMin, inst.nopasaMax)}
+          <div className="nota">
+            Criterio: en cada lado, <b>E − incertidumbre ≥ mínimo</b> y <b>E + incertidumbre ≤ máximo</b>. Si los dos lados cumplen, el tapón queda aprobado.
+          </div>
+          {auto ? (
+            <div style={{ margin: '10px 0' }}><span className={`estado ${auto === 'Aprobado' ? 'ok' : 'bad'}`}>{auto.toUpperCase()}</span> <span className="meta">decidido automáticamente</span></div>
+          ) : completo ? (
+            <div style={{ margin: '10px 0' }}>
+              <label>Faltan los límites del tapón: elegí el resultado a mano</label>
+              <select value={manual} onChange={(e) => setManual(e.target.value)}><option>Aprobado</option><option>Rechazado</option></select>
+            </div>
+          ) : null}
+        </>
+      )}
+      <div style={{ marginTop: 8 }}><label>Observaciones</label><textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} /></div>
+      {err && <div style={{ color: 'var(--bad)', marginTop: 8 }}>{err}</div>}
+      <div className="row" style={{ marginTop: 12 }}>
+        <button className="btn" onClick={guardarControl}>Guardar control</button>
+        <button className="btn sec" onClick={alTerminar}>Cancelar</button>
+      </div>
+    </div>
   )
 }
