@@ -750,8 +750,10 @@ function HomeView({ setView, setSelMachine, machines, pedidos, mantenimientos, c
 // piezas. SVG puro, sin librerías, para no sumarle peso a la app.
 // Cpk de una medida: qué tan centrado y consistente está el proceso respecto
 // a la tolerancia. Solo tiene sentido para cotas críticas con varios datos.
+function aNumero(v) { return parseFloat(String(v ?? "").replace(",", ".")); }
+
 function calcularCpk(campo, filas) {
-  const valores = filas.map(f => parseFloat(f.valores[campo.id])).filter(v => !isNaN(v));
+  const valores = filas.map(f => aNumero(f.valores[campo.id])).filter(v => !isNaN(v));
   if (valores.length < 2) return null;
   const media = valores.reduce((a,v)=>a+v,0) / valores.length;
   const varianza = valores.reduce((a,v)=>a+Math.pow(v-media,2),0) / (valores.length-1);
@@ -776,7 +778,7 @@ function calcularCpkHistorico(campo, plantillaId, registros, maquina) {
 
 function MedidaChart({ campo, filas }) {
   const puntos = filas
-    .map((f,i) => ({ pos:i+1, val: parseFloat(f.valores[campo.id]) }))
+    .map((f,i) => ({ pos:i+1, val: aNumero(f.valores[campo.id]) }))
     .filter(p => !isNaN(p.val));
   if (puntos.length < 2) return null;
 
@@ -812,10 +814,10 @@ function evaluarMedida(campo, val) {
     const tieneValor = val === "OK" || val === "NOK";
     return { tieneValor, dentro: val==="OK", fuera: val==="NOK" };
   }
-  const num = parseFloat(val);
+  const num = aNumero(val);
   const tieneValor = val !== "" && val != null && !isNaN(num);
   const dentro = tieneValor && num >= campo.tolMin && num <= campo.tolMax;
-  return { tieneValor, dentro, fuera: tieneValor && !dentro };
+  return { tieneValor, dentro, fuera: tieneValor && !dentro, alto: tieneValor && num > campo.tolMax, bajo: tieneValor && num < campo.tolMin };
 }
 
 function CalidadOperarioView({ plantillas, registros, setRegistro, operario, maquina }) {
@@ -911,6 +913,13 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
   const numeroFinal   = registroActivo?.numeroFinal || "";
   const [abiertaIdx, setAbiertaIdx] = useState(null);
   const [buscar, setBuscar]         = useState("");
+  const piezaAbiertaRef = useRef(null);
+
+  // Al abrir una pieza la lleva a la vista: con muchas piezas cargadas, el operario
+  // perdía de vista la que estaba llenando y tenía que scrollear a mano.
+  useEffect(() => {
+    if (abiertaIdx !== null && piezaAbiertaRef.current) piezaAbiertaRef.current.scrollIntoView({ behavior:"smooth", block:"start" });
+  }, [abiertaIdx]);
 
   const guardar = (cambios) => {
     const base = registroActivo || {
@@ -938,14 +947,50 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
   const setComentario = (idxFila, val) => {
     guardar({ filas: filas.map((f,i) => i===idxFila ? { ...f, comentario:val } : f) });
   };
-  const quitarFila = (idxFila) => { guardar({ filas: filas.filter((_,i)=>i!==idxFila) }); setAbiertaIdx(null); };
+  const quitarFila = (idxFila) => {
+    if (!window.confirm(`¿Quitar la pieza N° ${filas[idxFila]?.numeroPieza}? Se pierden sus medidas.`)) return;
+    guardar({ filas: filas.filter((_,i)=>i!==idxFila) });
+    setAbiertaIdx(null);
+  };
+
+  // Estado de cada pieza: cuántas medidas están fuera de tolerancia y cuántas faltan cargar.
+  const estadoFila = (fila, idx) => {
+    const aplicables = plantilla.campos.filter(c => aplicaEnPosicion(c, idx+1));
+    const evs = aplicables.map(c => evaluarMedida(c, fila.valores[c.id]));
+    const fuera = evs.filter(e => e.fuera).length;
+    const faltan = evs.filter(e => !e.tieneValor).length;
+    return { aplicables, fuera, faltan, completa: aplicables.length>0 && faltan===0 };
+  };
+  const resumen = filas.reduce((a, f, i) => {
+    const e = estadoFila(f, i);
+    if (e.fuera) a.fuera++;
+    if (e.faltan) a.incompletas++;
+    return a;
+  }, { fuera:0, incompletas:0 });
 
   const puedeEnviar = filas.length>0 && !!numeroInicial && !!numeroFinal;
   const enviar = () => {
     if (!registroActivo || !puedeEnviar) return;
+    // Antes de enviar muestra un resumen: una vez enviada la planilla el operario ya no la puede editar.
+    const lineas = ["¿Enviar la planilla a Calidad?", "", `• ${filas.length} pieza${filas.length===1?"":"s"} · N° ${numeroInicial} a ${numeroFinal}`];
+    if (resumen.fuera) lineas.push(`• ⚠ ${resumen.fuera} pieza${resumen.fuera===1?"":"s"} con medidas fuera de tolerancia`);
+    if (resumen.incompletas) lineas.push(`• ${resumen.incompletas} pieza${resumen.incompletas===1?"":"s"} con medidas sin cargar`);
+    lineas.push("", "Después de enviarla no la podés editar.");
+    if (!window.confirm(lineas.join("\n"))) return;
     setRegistro({ ...registroActivo, estado:"enviado", enviadoAt:new Date().toISOString() });
     onCerrar();
   };
+
+  // Enter pasa al campo siguiente de la misma pieza (el teclado del celular muestra "Siguiente").
+  const irSiguiente = (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const tarjeta = e.currentTarget.closest("[data-cal-pieza]");
+    const campos = tarjeta ? Array.from(tarjeta.querySelectorAll("input[data-cal-campo]")) : [];
+    const i = campos.indexOf(e.currentTarget);
+    if (i >= 0 && i < campos.length-1) campos[i+1].focus(); else e.currentTarget.blur();
+  };
+  const fmtDif = (n) => String(+Number(n).toFixed(4));
 
   const buscarIdx = buscar.trim() ? filas.findIndex(f => String(f.numeroPieza) === buscar.trim()) : -1;
 
@@ -956,19 +1001,29 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
   const inputBase = { width:"100%", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"10px 12px", color:"var(--text)", fontFamily:"'JetBrains Mono'", fontSize:14, fontWeight:700, outline:"none" };
 
   return (
-    <div style={{ flex:"0 0 340px", width:340, display:"flex", flexDirection:"column", gap:10 }}>
-      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"12px 14px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <div>
-          <div style={{ fontFamily:"'Bebas Neue'", fontSize:16, color:"#7C3AED", letterSpacing:1 }}>{plantilla.nombre}</div>
-          <div style={{ fontSize:11, color:"var(--muted)" }}>{plantilla.piezaCodigo}</div>
+    <div style={{ flex:"1 0 min(340px, 100%)", maxWidth:520, minWidth:0, display:"flex", flexDirection:"column", gap:10 }}>
+      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"12px 14px", display:"flex", flexDirection:"column", gap:8 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div>
+            <div style={{ fontFamily:"'Bebas Neue'", fontSize:16, color:"#7C3AED", letterSpacing:1 }}>{plantilla.nombre}</div>
+            <div style={{ fontSize:11, color:"var(--muted)" }}>{plantilla.piezaCodigo}</div>
+          </div>
+          <button onClick={onCerrar} style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"5px 10px", color:"var(--muted)", cursor:"pointer", fontSize:12 }}>✕</button>
         </div>
-        <button onClick={onCerrar} style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"5px 10px", color:"var(--muted)", cursor:"pointer", fontSize:12 }}>✕</button>
+        {filas.length > 0 && (
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+            <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:99, background:"var(--surface2)", color:"var(--text)" }}>{filas.length} pieza{filas.length===1?"":"s"}</span>
+            {resumen.fuera > 0 && <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:99, background:"#FEF2F2", color:"#B91C1C" }}>⚠ {resumen.fuera} fuera de tolerancia</span>}
+            {resumen.incompletas > 0 && <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:99, background:"#fff7ed", color:"#9a6000" }}>{resumen.incompletas} sin completar</span>}
+            {resumen.fuera === 0 && resumen.incompletas === 0 && <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:99, background:"#E7F5EF", color:"#166534" }}>✓ todo dentro de tolerancia</span>}
+          </div>
+        )}
       </div>
 
       <div style={{ background:"#fff7ed", border:"1px solid #fed7aa", borderRadius:12, padding:"12px 14px" }}>
         <label style={{ fontSize:11, color:"#9a6000", fontWeight:700, display:"block", marginBottom:4 }}>N° de pieza inicial (al arrancar el turno)</label>
         <input value={numeroInicial} onChange={e=>setNumeroInicial(e.target.value)} placeholder="ej: 540" inputMode="numeric" disabled={filas.length>0}
-          style={{ width:"100%", background: filas.length>0 ? "var(--surface2)" : "white", border:"1px solid #fed7aa", borderRadius:8, padding:"10px 12px", color:"var(--text)", fontFamily:"'JetBrains Mono'", fontSize:15, fontWeight:700, outline:"none" }} />
+          style={{ width:"100%", background: filas.length>0 ? "var(--surface2)" : "white", border:"1px solid #fed7aa", borderRadius:8, padding:"10px 12px", color:"var(--text)", fontFamily:"'JetBrains Mono'", fontSize:16, fontWeight:700, outline:"none" }} />
         {!numeroInicial && <div style={{ fontSize:11, color:"#9a6000", marginTop:4 }}>Completá esto antes de agregar piezas.</div>}
       </div>
 
@@ -1007,17 +1062,17 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
 
       {filas.map((fila, idx) => {
         const abierta = abiertaIdx === idx;
-        const camposAplicables = plantilla.campos.filter(c => aplicaEnPosicion(c, idx+1));
-        const algunaFuera = camposAplicables.some(c => evaluarMedida(c, fila.valores[c.id]).fuera);
-        const todasCargadas = camposAplicables.length>0 && camposAplicables.every(c => evaluarMedida(c, fila.valores[c.id]).tieneValor);
+        const { aplicables: camposAplicables, fuera: cantFuera, faltan, completa: todasCargadas } = estadoFila(fila, idx);
+        const algunaFuera = cantFuera > 0;
 
         if (!abierta) {
           return (
             <button key={idx} onClick={()=>setAbiertaIdx(idx)}
-              style={{ background:"var(--surface)", border:`1px solid ${algunaFuera?"#EF444466":"var(--border)"}`, borderRadius:12, padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer", textAlign:"left" }}>
+              style={{ background:"var(--surface)", border:`1px solid ${algunaFuera?"#EF444466":"var(--border)"}`, borderRadius:12, padding:"12px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer", textAlign:"left" }}>
               <span style={{ fontFamily:"'Bebas Neue'", fontSize:14, color:"var(--text)", letterSpacing:1 }}>PIEZA N° {fila.numeroPieza}</span>
               <span style={{ display:"flex", alignItems:"center", gap:6 }}>
-                {algunaFuera && <span style={{ fontSize:11, color:"#EF4444", fontWeight:700 }}>⚠</span>}
+                {algunaFuera && <span style={{ fontSize:11, color:"#EF4444", fontWeight:700 }}>⚠ fuera de tolerancia</span>}
+                {!algunaFuera && faltan>0 && <span style={{ fontSize:11, color:"#9a6000", fontWeight:700 }}>faltan {faltan}</span>}
                 {!algunaFuera && todasCargadas && <span style={{ fontSize:11, color:"#16a34a", fontWeight:700 }}>✓</span>}
                 <span style={{ color:"var(--muted)", fontSize:13 }}>▾</span>
               </span>
@@ -1026,7 +1081,7 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
         }
 
         return (
-          <div key={idx} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10 }}>
+          <div key={idx} ref={piezaAbiertaRef} data-cal-pieza="1" style={{ background:"var(--surface)", border:`1px solid ${algunaFuera?"#EF444466":"var(--border)"}`, borderRadius:14, padding:"14px 16px", display:"flex", flexDirection:"column", gap:12, scrollMarginTop:12 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10 }}>
               <button onClick={()=>setAbiertaIdx(null)} style={{ background:"none", border:"none", padding:0, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
                 <span style={{ fontFamily:"'Bebas Neue'", fontSize:16, color:"var(--text)", letterSpacing:1 }}>PIEZA N° {fila.numeroPieza}</span>
@@ -1034,36 +1089,51 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
               </button>
               <button onClick={()=>quitarFila(idx)} style={{ background:"none", border:"none", color:"#EF4444", cursor:"pointer", fontSize:12, flexShrink:0 }}>Quitar</button>
             </div>
+            {faltan > 0 && <div style={{ fontSize:11.5, color:"#9a6000", fontWeight:600, marginTop:-6 }}>Faltan cargar {faltan} medida{faltan===1?"":"s"}</div>}
             {camposAplicables.map(campo => {
               const val = fila.valores[campo.id];
-              const { dentro, fuera } = evaluarMedida(campo, val);
+              const ev = evaluarMedida(campo, val);
+              const { dentro, fuera } = ev;
               return (
                 <div key={campo.id}>
-                  <label style={{ fontSize:11, color:"var(--muted)", display:"block", marginBottom:4 }}>
-                    {campo.label} {campo.tipo!=="tapon" && <span style={{ color:"#9AA7AE" }}>· nom. {campo.nominal!==""?campo.nominal:"—"} · [{campo.tolMin} a {campo.tolMax}]</span>}
+                  <label style={{ fontSize:12, color:"var(--muted)", display:"block", marginBottom:5 }}>
+                    <b style={{ color:"var(--text)" }}>{campo.label}</b> {campo.tipo!=="tapon" && <span style={{ color:"#9AA7AE" }}>· nom. {campo.nominal!==""?campo.nominal:"—"} · [{campo.tolMin} a {campo.tolMax}]</span>}
                   </label>
                   {campo.tipo === "tapon" ? (
                     <div style={{ display:"flex", gap:8 }}>
                       <button onClick={()=>setValor(idx, campo.id, "OK")}
-                        style={{ flex:1, padding:"10px", borderRadius:8, border:`2px solid ${val==="OK"?"#16a34a":"var(--border)"}`, background: val==="OK"?"#16a34a":"var(--surface2)", color: val==="OK"?"white":"var(--muted)", fontWeight:700, fontSize:13, cursor:"pointer" }}>OK</button>
+                        style={{ flex:1, padding:"14px", borderRadius:10, border:`2px solid ${val==="OK"?"#16a34a":"var(--border)"}`, background: val==="OK"?"#16a34a":"var(--surface2)", color: val==="OK"?"white":"var(--muted)", fontWeight:700, fontSize:15, cursor:"pointer" }}>OK</button>
                       <button onClick={()=>setValor(idx, campo.id, "NOK")}
-                        style={{ flex:1, padding:"10px", borderRadius:8, border:`2px solid ${val==="NOK"?"#EF4444":"var(--border)"}`, background: val==="NOK"?"#EF4444":"var(--surface2)", color: val==="NOK"?"white":"var(--muted)", fontWeight:700, fontSize:13, cursor:"pointer" }}>NO OK</button>
+                        style={{ flex:1, padding:"14px", borderRadius:10, border:`2px solid ${val==="NOK"?"#EF4444":"var(--border)"}`, background: val==="NOK"?"#EF4444":"var(--surface2)", color: val==="NOK"?"white":"var(--muted)", fontWeight:700, fontSize:15, cursor:"pointer" }}>NO OK</button>
                     </div>
                   ) : (
-                    <input value={val ?? ""} onChange={e=>setValor(idx, campo.id, e.target.value)} inputMode="decimal"
-                      style={{ ...inputBase, textAlign:"left",
-                        background: dentro ? "#E7F5EF" : fuera ? "#FEF2F2" : "var(--surface2)",
-                        border:`2px solid ${dentro ? "#16a34a" : fuera ? "#EF4444" : "var(--border)"}`,
-                        color: dentro ? "#166534" : fuera ? "#B91C1C" : "var(--text)" }} />
+                    <>
+                      <input data-cal-campo="1" value={val ?? ""} onChange={e=>setValor(idx, campo.id, e.target.value.replace(",", "."))} onKeyDown={irSiguiente} inputMode="decimal" enterKeyHint="next"
+                        style={{ ...inputBase, textAlign:"left", padding:"13px 14px", fontSize:17,
+                          background: dentro ? "#E7F5EF" : fuera ? "#FEF2F2" : "var(--surface2)",
+                          border:`2px solid ${dentro ? "#16a34a" : fuera ? "#EF4444" : "var(--border)"}`,
+                          color: dentro ? "#166534" : fuera ? "#B91C1C" : "var(--text)" }} />
+                      {fuera && (
+                        <div style={{ fontSize:12, color:"#B91C1C", fontWeight:700, marginTop:5 }}>
+                          {ev.alto
+                            ? `▲ Fuera de tolerancia: pasa ${fmtDif(aNumero(val) - Number(campo.tolMax))} del máximo (${campo.tolMax})`
+                            : `▼ Fuera de tolerancia: le faltan ${fmtDif(Number(campo.tolMin) - aNumero(val))} para el mínimo (${campo.tolMin})`}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               );
             })}
             <div>
-              <label style={{ fontSize:11, color:"var(--muted)", display:"block", marginBottom:4 }}>Comentario</label>
-              <input value={fila.comentario||""} onChange={e=>setComentario(idx, e.target.value)} placeholder="Observación (opcional)"
-                style={{ ...inputBase, fontFamily:"'DM Sans'", fontWeight:400, fontSize:13 }} />
+              <label style={{ fontSize:12, color:"var(--muted)", display:"block", marginBottom:5 }}>Comentario</label>
+              <input data-cal-campo="1" value={fila.comentario||""} onChange={e=>setComentario(idx, e.target.value)} onKeyDown={irSiguiente} placeholder="Observación (opcional)"
+                style={{ ...inputBase, fontFamily:"'DM Sans'", fontWeight:400, fontSize:14 }} />
             </div>
+            {idx === filas.length-1 && (
+              <button onClick={agregarFila}
+                style={{ background:"#7C3AED", border:"none", borderRadius:12, padding:"15px", fontFamily:"'Bebas Neue'", fontSize:16, letterSpacing:1, color:"white", cursor:"pointer" }}>SIGUIENTE PIEZA ▶</button>
+            )}
           </div>
         );
       })}
@@ -1078,7 +1148,7 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
       <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:12, padding:"12px 14px" }}>
         <label style={{ fontSize:11, color:"var(--muted)", fontWeight:700, display:"block", marginBottom:4 }}>N° de pieza final (al terminar el turno)</label>
         <input value={numeroFinal} onChange={e=>setNumeroFinal(e.target.value)} placeholder="ej: 612" inputMode="numeric"
-          style={inputBase} />
+          style={{ ...inputBase, fontSize:16 }} />
       </div>
 
       {!puedeEnviar && filas.length>0 && (
@@ -1787,7 +1857,7 @@ function CalidadRecibidosView({ registros, plantillas, updateRegistro }) {
       const chartW = pageW - 2*marginX - 30, chartH = 20;
       camposCriticos.forEach(c => {
         checkPage(chartH + 12);
-        const puntos = (r.filas||[]).map(f=>parseFloat(f.valores[c.id])).filter(v=>!isNaN(v));
+        const puntos = (r.filas||[]).map(f=>aNumero(f.valores[c.id])).filter(v=>!isNaN(v));
         const cpkInfo = calcularCpkHistorico(c, r.plantillaId, registros, r.maquina);
         doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(0);
         doc.text(c.label, marginX, y);
