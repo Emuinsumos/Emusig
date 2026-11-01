@@ -914,6 +914,9 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
   const [abiertaIdx, setAbiertaIdx] = useState(null);
   const [buscar, setBuscar]         = useState("");
   const piezaAbiertaRef = useRef(null);
+  // Paso de los botones − / + (se acuerda del último que usó el operario en este celular).
+  const [paso, setPaso] = useState(() => { try { const p = localStorage.getItem("cal_paso"); return ["0.001","0.01","0.1"].includes(p) ? p : "0.01"; } catch { return "0.01"; } });
+  const elegirPaso = (p) => { setPaso(p); try { localStorage.setItem("cal_paso", p); } catch {} };
 
   // Al abrir una pieza la lleva a la vista: con muchas piezas cargadas, el operario
   // perdía de vista la que estaba llenando y tenía que scrollear a mano.
@@ -991,6 +994,15 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
     if (i >= 0 && i < campos.length-1) campos[i+1].focus(); else e.currentTarget.blur();
   };
   const fmtDif = (n) => String(+Number(n).toFixed(4));
+  // Sube o baja la medida de a un paso (vacía: arranca desde el nominal). Redondea para evitar 10.0200000001.
+  const ajustar = (idx, campo, dir) => {
+    const actual = filas[idx]?.valores?.[campo.id];
+    let base = aNumero(actual);
+    if (isNaN(base)) base = aNumero(campo.nominal);
+    if (isNaN(base)) base = 0;
+    const dec = Math.max((paso.split(".")[1] || "").length, (String(actual ?? "").split(".")[1] || "").length);
+    setValor(idx, campo.id, (base + dir * Number(paso)).toFixed(dec));
+  };
 
   const buscarIdx = buscar.trim() ? filas.findIndex(f => String(f.numeroPieza) === buscar.trim()) : -1;
 
@@ -1113,6 +1125,16 @@ function CalidadColumna({ plantilla, registros, setRegistro, operario, maquina, 
                           background: dentro ? "#E7F5EF" : fuera ? "#FEF2F2" : "var(--surface2)",
                           border:`2px solid ${dentro ? "#16a34a" : fuera ? "#EF4444" : "var(--border)"}`,
                           color: dentro ? "#166534" : fuera ? "#B91C1C" : "var(--text)" }} />
+                      <div style={{ display:"flex", gap:6, marginTop:6, alignItems:"stretch" }}>
+                        <button type="button" onClick={()=>ajustar(idx, campo, -1)} aria-label={`Bajar ${paso.replace(".", ",")}`}
+                          style={{ flex:"1 1 0", minHeight:48, borderRadius:10, border:"1px solid var(--border)", background:"var(--surface2)", color:"var(--text)", fontSize:24, fontWeight:700, cursor:"pointer" }}>−</button>
+                        <button type="button" onClick={()=>ajustar(idx, campo, 1)} aria-label={`Subir ${paso.replace(".", ",")}`}
+                          style={{ flex:"1 1 0", minHeight:48, borderRadius:10, border:"1px solid var(--border)", background:"var(--surface2)", color:"var(--text)", fontSize:24, fontWeight:700, cursor:"pointer" }}>+</button>
+                        {[["0.001","0,001"],["0.01","0,01"],["0.1","0,1"]].map(([v,t]) => (
+                          <button type="button" key={v} onClick={()=>elegirPaso(v)}
+                            style={{ flex:"0 0 auto", minWidth:52, borderRadius:10, border:`1px solid ${paso===v ? "#7C3AED" : "var(--border)"}`, background: paso===v ? "#7C3AED" : "var(--surface)", color: paso===v ? "white" : "var(--muted)", fontSize:12, fontWeight:700, cursor:"pointer" }}>{t}</button>
+                        ))}
+                      </div>
                       {fuera && (
                         <div style={{ fontSize:12, color:"#B91C1C", fontWeight:700, marginTop:5 }}>
                           {ev.alto
