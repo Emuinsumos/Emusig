@@ -36,7 +36,7 @@ export async function certificadoRoscaPDF(c, inst) {
     ['Codigo', c.codigo, 'Rosca', c.rosca || inst?.rosca || '-'],
     ['Marca', c.marca ?? inst?.marca ?? '-', 'N° de fabricacion', c.nroFab ?? inst?.nroFab ?? '-'],
     ['Paso (mm)', String(c.paso ?? inst?.paso ?? '-'), 'Angulo de flanco (grados)', String(c.angulo ?? inst?.angulo ?? '60')],
-    ['A cargo de', c.aCargo ?? inst?.aCargo ?? '-', 'Incertidumbre (mm)', n5(c.incertidumbre)],
+    ['A cargo de', c.aCargo ?? inst?.aCargo ?? '-', 'Incertidumbre (mm)', c.usaIncertidumbre === false ? 'No se considera' : n5(c.incertidumbre)],
   ]
   filas.forEach((f) => {
     doc.setFont('helvetica', 'bold'); doc.text(f[0] + ':', M, y)
@@ -62,12 +62,41 @@ export async function certificadoRoscaPDF(c, inst) {
   ;[['PASA', c.lados?.pasa], ['NO PASA', c.lados?.nopasa]].forEach(([nombre, l], i) => {
     if (i % 2 === 0) { doc.setFillColor(242, 243, 244); doc.rect(M, y, W - 2 * M, 8, 'F') }
     const ok = l?.ok
-    const vals = [nombre, n4(l?.alambre), n4(l?.cota), n5(l?.E), n4(l?.min), n4(l?.max), ok === true ? 'CUMPLE' : ok === false ? 'NO CUMPLE' : '-']
+    const okE = l?.okE !== undefined ? l.okE : ok
+    const vals = [nombre, n4(l?.alambre), n4(l?.cota), n5(l?.E), n4(l?.min), n4(l?.max), okE === true ? 'CUMPLE' : okE === false ? 'NO CUMPLE' : '-']
     vals.forEach((v, k) => doc.text(String(v), cols[k] + 1.5, y + 5.5))
     y += 8
   })
   doc.setDrawColor(150, 150, 150)
   doc.rect(M, y - 16, W - 2 * M, 16)
+
+  // Diametro exterior medido sobre el filete (solo si el tapon tiene limites cargados)
+  if (c.lados?.pasa?.extMin != null || c.lados?.nopasa?.extMin != null) {
+    y += 6
+    const cols2 = [M, M + 24, M + 62, M + 100, M + 138]
+    const head2 = ['Lado', 'Diam. exterior D', 'Minimo', 'Maximo', 'Resultado']
+    doc.setFillColor(22, 107, 47)
+    doc.rect(M, y, W - 2 * M, 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8.5)
+    head2.forEach((h, i) => doc.text(h, cols2[i] + 1.5, y + 5.5))
+    y += 8
+    doc.setTextColor(20, 20, 20)
+    doc.setFont('courier', 'normal')
+    doc.setFontSize(9)
+    ;[['PASA', c.lados?.pasa], ['NO PASA', c.lados?.nopasa]].forEach(([nombre, l], i) => {
+      if (i % 2 === 0) { doc.setFillColor(242, 243, 244); doc.rect(M, y, W - 2 * M, 8, 'F') }
+      const vals = [nombre, n5(l?.D), n4(l?.extMin), n4(l?.extMax), l?.okX === true ? 'CUMPLE' : l?.okX === false ? 'NO CUMPLE' : '-']
+      vals.forEach((v, k) => doc.text(String(v), cols2[k] + 1.5, y + 5.5))
+      y += 8
+    })
+    doc.setDrawColor(150, 150, 150)
+    doc.rect(M, y - 16, W - 2 * M, 16)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    if (c.usaIncertidumbre !== false) { doc.text(`Incertidumbre del diametro exterior (mm): ${n5(c.incertidumbreExt ?? c.incertidumbre)}`, M, y + 5); y += 4 }
+  }
 
   y += 8
   doc.setFont('helvetica', 'normal')
@@ -75,7 +104,14 @@ export async function certificadoRoscaPDF(c, inst) {
   doc.text('Diametro medio por el metodo de las tres varillas: E = M - d (1 + 1/sen(a/2)) + (P/2) cot(a/2)', M, y)
   y += 6
   if (c.resultadoAuto) {
-    doc.text('Criterio: E - incertidumbre >= minimo y E + incertidumbre <= maximo, en ambos lados.', M, y)
+    const conExt = c.lados?.pasa?.extMin != null || c.lados?.nopasa?.extMin != null
+    if (c.usaIncertidumbre === false) {
+      doc.text('Criterio: minimo <= E <= maximo, en ambos lados' + (conExt ? ';' : '.'), M, y)
+      if (conExt) { y += 5; doc.text('lo mismo para el diametro exterior D medido sobre el filete (sin considerar incertidumbre).', M, y) }
+    } else {
+      doc.text('Criterio: E - incertidumbre >= minimo y E + incertidumbre <= maximo, en ambos lados' + (conExt ? ';' : '.'), M, y)
+      if (conExt) { y += 5; doc.text('lo mismo para el diametro exterior D medido sobre el filete.', M, y) }
+    }
   } else {
     doc.text('Resultado cargado manualmente (faltan limites o datos para decidir).', M, y)
   }

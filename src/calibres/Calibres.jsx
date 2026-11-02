@@ -103,6 +103,8 @@ const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', '
 const MESES_C = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 const n5 = (v) => (v === null || v === undefined || Number.isNaN(v) ? '—' : Number(v).toFixed(5))
+const hayExt = (i) => !!i && ((num(i.pasaExtMin) !== null && num(i.pasaExtMax) !== null) || (num(i.nopasaExtMin) !== null && num(i.nopasaExtMax) !== null))
+const extFicha = (i) => (hayExt(i) ? [['Diám. exterior PASA', limTxt(i.pasaExtMin, i.pasaExtMax)], ['Diám. exterior NO PASA', limTxt(i.nopasaExtMin, i.nopasaExtMax)]] : [])
 const limTxt = (a, b) => (num(a) !== null && num(b) !== null ? `${num(a)} a ${num(b)} mm` : 'sin cargar')
 // Alambre ideal (toca los flancos en el diámetro medio): d = P / (2 cos(α/2))
 function alambreIdealDe(f) {
@@ -374,7 +376,7 @@ function Panel({ lista, porVencer, permiso, activarAvisos, irAControl, solPend, 
 // ---------- Instrumentos ----------
 const VACIO = {
   codigo: '', tipo: 'Vernier', tipoOtro: '', modalidad: 'Mecánico', nroFab: '', marca: '',
-  frecMeses: 12, aCargo: '', apreciacion: '', tolerancia: '', rango: '', rosca: '', paso: '', angulo: '60', alambre: '', pasaMin: '', pasaMax: '', nopasaMin: '', nopasaMax: '', maquina: '', ultimaRevision: '', vencimiento: '', activo: true, rechazado: false,
+  frecMeses: 12, aCargo: '', apreciacion: '', tolerancia: '', rango: '', rosca: '', paso: '', angulo: '60', alambre: '', pasaMin: '', pasaMax: '', nopasaMin: '', nopasaMax: '', pasaExtMin: '', pasaExtMax: '', nopasaExtMin: '', nopasaExtMax: '', maquina: '', ultimaRevision: '', vencimiento: '', activo: true, rechazado: false,
 }
 
 function Instrumentos({ lista, tols, maquinas, editando, setEditando, irAControl, mostrar }) {
@@ -497,7 +499,7 @@ function FormInstrumento({ inicial, id, lista, tols, maquinas, alTerminar }) {
     if (roscado) {
       const p = num(f.paso)
       if (p === null || p <= 0) return setErr('Indicá el paso de la rosca (mm).')
-      for (const [a, b, n] of [['pasaMin', 'pasaMax', 'PASA'], ['nopasaMin', 'nopasaMax', 'NO PASA']]) {
+      for (const [a, b, n] of [['pasaMin', 'pasaMax', 'PASA'], ['nopasaMin', 'nopasaMax', 'NO PASA'], ['pasaExtMin', 'pasaExtMax', 'PASA (diámetro exterior)'], ['nopasaExtMin', 'nopasaExtMax', 'NO PASA (diámetro exterior)']]) {
         const lo = num(f[a]), hi = num(f[b])
         if ((lo === null) !== (hi === null)) return setErr(`Completá el mínimo y el máximo del lado ${n}, o dejá los dos vacíos.`)
         if (lo !== null && lo >= hi) return setErr(`En ${n}, el mínimo tiene que ser menor que el máximo.`)
@@ -586,6 +588,10 @@ function FormInstrumento({ inicial, id, lista, tols, maquinas, alTerminar }) {
             <div><label>PASA: diámetro medio máximo (mm)</label><input inputMode="decimal" value={f.pasaMax} onChange={(e) => set('pasaMax', e.target.value)} /></div>
             <div><label>NO PASA: diámetro medio mínimo (mm)</label><input inputMode="decimal" value={f.nopasaMin} onChange={(e) => set('nopasaMin', e.target.value)} /></div>
             <div><label>NO PASA: diámetro medio máximo (mm)</label><input inputMode="decimal" value={f.nopasaMax} onChange={(e) => set('nopasaMax', e.target.value)} /></div>
+            <div><label>PASA: diámetro exterior mínimo (mm)</label><input inputMode="decimal" value={f.pasaExtMin} onChange={(e) => set('pasaExtMin', e.target.value)} placeholder="opcional" /></div>
+            <div><label>PASA: diámetro exterior máximo (mm)</label><input inputMode="decimal" value={f.pasaExtMax} onChange={(e) => set('pasaExtMax', e.target.value)} placeholder="opcional" /></div>
+            <div><label>NO PASA: diámetro exterior mínimo (mm)</label><input inputMode="decimal" value={f.nopasaExtMin} onChange={(e) => set('nopasaExtMin', e.target.value)} placeholder="opcional" /></div>
+            <div><label>NO PASA: diámetro exterior máximo (mm)</label><input inputMode="decimal" value={f.nopasaExtMax} onChange={(e) => set('nopasaExtMax', e.target.value)} placeholder="opcional" /></div>
           </>
         )}
         <div><label>Frecuencia de control (meses)</label><input type="number" min="1" value={f.frecMeses} onChange={(e) => cambiaRevisionOFrec('frecMeses', e.target.value)} /></div>
@@ -603,7 +609,7 @@ function FormInstrumento({ inicial, id, lista, tols, maquinas, alTerminar }) {
       )}
       {roscado && (
         <div className="nota">
-          Los límites de diámetro medio PASA y NO PASA salen del plano o del certificado del tapón (norma de calibres de rosca). El control se hace con el método de las tres varillas en la pestaña <b>Tapones de rosca</b>.
+          Los límites de diámetro medio PASA y NO PASA salen del plano o del certificado del tapón (norma de calibres de rosca). El control se hace con el método de las tres varillas en la pestaña <b>Tapones de rosca</b>. El <b>diámetro exterior</b> (medido sobre el filete, con micrómetro) es opcional: si cargás sus límites, el control lo pide y hace falta que cumpla, además del diámetro medio, para aprobar el tapón.
         </div>
       )}
       {err && <div style={{ color: 'var(--bad)', marginTop: 8 }}>{err}</div>}
@@ -823,7 +829,7 @@ function Historial({ lista, controles, mostrar }) {
               <div className="meta">Patrón: {c.galga || '—'} · Incert.: {c.incertidumbre ?? '—'} · Resp.: {c.responsable || '—'}</div>
               {c.tipoControl === 'rosca' && c.lados && (
                 <div className="meta">
-                  {c.rosca || 'Rosca'} · E PASA {n5(c.lados.pasa?.E)} mm · E NO PASA {n5(c.lados.nopasa?.E)} mm
+                  {c.rosca || 'Rosca'} · E PASA {n5(c.lados.pasa?.E)} mm · E NO PASA {n5(c.lados.nopasa?.E)} mm{c.lados.pasa?.D != null && <> · D ext. PASA {n5(c.lados.pasa.D)} mm · D ext. NO PASA {n5(c.lados.nopasa?.D)} mm</>}
                 </div>
               )}
               {(c.puntos || []).length > 0 && (
@@ -1020,7 +1026,7 @@ function Escaner({ lista, controles, tols, irAControl, mostrar, modo = 'calidad'
           ['N° de fabricación', inst.nroFab || '—'],
           ['A cargo de', inst.aCargo || '—'],
           ...(esRosca(inst)
-            ? [['Rosca', `${inst.rosca || '—'} · paso ${inst.paso || '—'} mm`], ['Límites PASA', limTxt(inst.pasaMin, inst.pasaMax)], ['Límites NO PASA', limTxt(inst.nopasaMin, inst.nopasaMax)]]
+            ? [['Rosca', `${inst.rosca || '—'} · paso ${inst.paso || '—'} mm`], ['Límites PASA', limTxt(inst.pasaMin, inst.pasaMax)], ['Límites NO PASA', limTxt(inst.nopasaMin, inst.nopasaMax)], ...extFicha(inst)]
             : [['Apreciación', inst.apreciacion ? `${inst.apreciacion} mm` : '—']]),
           ['Frecuencia de control', inst.frecMeses ? `${inst.frecMeses} meses` : '—'],
           ['Última revisión', fmt(inst.ultimaRevision)],
@@ -1388,7 +1394,7 @@ function FichaDatos({ inst, tols }) {
     ['N° de fabricación', inst.nroFab || '—'],
     ['A cargo de', inst.aCargo || '—'],
     ...(esRosca(inst)
-      ? [['Rosca', `${inst.rosca || '—'} · paso ${inst.paso || '—'} mm · ${inst.angulo || 60}°`], ['Límites PASA', limTxt(inst.pasaMin, inst.pasaMax)], ['Límites NO PASA', limTxt(inst.nopasaMin, inst.nopasaMax)]]
+      ? [['Rosca', `${inst.rosca || '—'} · paso ${inst.paso || '—'} mm · ${inst.angulo || 60}°`], ['Límites PASA', limTxt(inst.pasaMin, inst.pasaMax)], ['Límites NO PASA', limTxt(inst.nopasaMin, inst.nopasaMax)], ...extFicha(inst)]
       : [['Apreciación', inst.apreciacion ? `${inst.apreciacion} mm` : '—']]),
     ['Frecuencia de control', inst.frecMeses ? `${inst.frecMeses} meses` : '—'],
     ['Última revisión', fmt(inst.ultimaRevision)],
@@ -1696,6 +1702,7 @@ function Roscas({ lista, controles, solicitudes, inicial, operario, mostrar, nue
               <div className="cod">{i.codigo} <span className="meta">· {i.rosca || 'sin designación'}</span></div>
               <div className="meta">Paso {i.paso || '—'} mm · {i.angulo || 60}° · Máquina: {i.maquina || 'sin asignar'} · A cargo: {i.aCargo || '—'}</div>
               <div className="meta">PASA {limTxt(i.pasaMin, i.pasaMax)} · NO PASA {limTxt(i.nopasaMin, i.nopasaMax)}</div>
+              {hayExt(i) && <div className="meta">Diám. exterior: PASA {limTxt(i.pasaExtMin, i.pasaExtMax)} · NO PASA {limTxt(i.nopasaExtMin, i.nopasaExtMax)}</div>}
               <div className="meta">Última rev.: {fmt(i.ultimaRevision)} · Vence: {fmt(i.vencimiento)}</div>
               <div className="row" style={{ marginTop: 8 }}>
                 <button className="btn small" onClick={() => abrirControl(i.id)}>Registrar control</button>
@@ -1714,7 +1721,9 @@ function ControlRosca({ lista, solicitudes, inicial, operario, mostrar, alTermin
   const [instId, setInstId] = useState(inicial || '')
   const [fecha, setFecha] = useState(hoyISO())
   const [incert, setIncert] = useState('')
-  const [lados, setLados] = useState({ pasa: { d: '', M: '' }, nopasa: { d: '', M: '' } })
+  const [incertExt, setIncertExt] = useState('')
+  const [usaIncert, setUsaIncert] = useState(false) // el control de roscas no usa incertidumbre salvo que se tilde
+  const [lados, setLados] = useState({ pasa: { d: '', M: '', D: '' }, nopasa: { d: '', M: '', D: '' } })
   const [manual, setManual] = useState('Aprobado')
   const [resp, setResp] = useState(operario || '')
   const [obs, setObs] = useState('')
@@ -1731,29 +1740,36 @@ function ControlRosca({ lista, solicitudes, inicial, operario, mostrar, alTermin
 
   const setLado = (k, campo, v) => setLados((p) => ({ ...p, [k]: { ...p[k], [campo]: v } }))
   const P = inst ? num(inst.paso) : null
-  const U = num(incert) ?? 0
-  const evaluar = (k, min, max) => {
+  const U = usaIncert ? (num(incert) ?? 0) : 0
+  const Ue = usaIncert ? (num(incertExt) ?? U) : 0
+  const evaluar = (k, min, max, extMin, extMax) => {
     const d = num(lados[k].d), M = num(lados[k].M)
     if (!inst || P === null || d === null || M === null) return null
     const E = medioTresVarillas(M, d, P, inst.angulo)
     const lo = num(min), hi = num(max)
-    const ok = lo === null || hi === null ? null : E - U >= lo - 1e-9 && E + U <= hi + 1e-9
-    return { alambre: d, cota: M, E, min: lo, max: hi, ok }
+    const okE = lo === null || hi === null ? null : E - U >= lo - 1e-9 && E + U <= hi + 1e-9
+    // Diámetro exterior (medido sobre el filete): opcional; si el tapón tiene límites cargados, hay que medirlo y cumplirlo.
+    const elo = num(extMin), ehi = num(extMax), D = num(lados[k].D)
+    const pideExt = elo !== null && ehi !== null
+    if (pideExt && D === null) return null
+    const okX = pideExt ? D - Ue >= elo - 1e-9 && D + Ue <= ehi + 1e-9 : null
+    const ok = okX === false ? false : okE
+    return { alambre: d, cota: M, E, min: lo, max: hi, okE, D, extMin: pideExt ? elo : null, extMax: pideExt ? ehi : null, okX, ok }
   }
-  const rP = inst ? evaluar('pasa', inst.pasaMin, inst.pasaMax) : null
-  const rN = inst ? evaluar('nopasa', inst.nopasaMin, inst.nopasaMax) : null
+  const rP = inst ? evaluar('pasa', inst.pasaMin, inst.pasaMax, inst.pasaExtMin, inst.pasaExtMax) : null
+  const rN = inst ? evaluar('nopasa', inst.nopasaMin, inst.nopasaMax, inst.nopasaExtMin, inst.nopasaExtMax) : null
   const completo = !!rP && !!rN
   const auto = completo && rP.ok !== null && rN.ok !== null ? (rP.ok && rN.ok ? 'Aprobado' : 'Rechazado') : null
   const resultado = auto || manual
 
   const guardarControl = async () => {
     if (!inst) return setErr('Elegí el tapón.')
-    if (!completo) return setErr('Cargá el alambre y la cota medida de los dos lados (PASA y NO PASA).')
+    if (!completo) return setErr(hayExt(inst) ? 'Cargá el alambre, la cota medida y el diámetro exterior de los dos lados (PASA y NO PASA).' : 'Cargá el alambre y la cota medida de los dos lados (PASA y NO PASA).')
     const vence = resultado === 'Aprobado' ? sumarMeses(fecha, inst.frecMeses) || inst.vencimiento || '' : ''
     const id = nuevoId()
-    const lado = (r) => ({ alambre: r.alambre, cota: r.cota, E: r.E, min: r.min, max: r.max, ok: r.ok })
+    const lado = (r) => ({ alambre: r.alambre, cota: r.cota, E: r.E, min: r.min, max: r.max, ok: r.ok, okE: r.okE, D: r.D, extMin: r.extMin, extMax: r.extMax, okX: r.okX })
     await guardar('controles', id, {
-      tipoControl: 'rosca', instrumentoId: inst.id, codigo: inst.codigo, fecha, incertidumbre: num(incert),
+      tipoControl: 'rosca', instrumentoId: inst.id, codigo: inst.codigo, fecha, usaIncertidumbre: usaIncert, incertidumbre: usaIncert ? num(incert) : null, incertidumbreExt: usaIncert ? num(incertExt) : null,
       rosca: inst.rosca || '', paso: num(inst.paso), angulo: num(inst.angulo) ?? 60,
       lados: { pasa: lado(rP), nopasa: lado(rN) }, puntos: [], errorMax: null, tolerancia: null,
       resultado, resultadoAuto: !!auto, responsable: resp.trim() || inst.aCargo || '', observaciones: obs.trim(), creado: Date.now(),
@@ -1769,16 +1785,22 @@ function ControlRosca({ lista, solicitudes, inicial, operario, mostrar, alTermin
     alTerminar()
   }
 
-  const bloque = (k, titulo, r, min, max) => (
+  const bloque = (k, titulo, r, min, max, extMin, extMax) => (
     <div className="card" style={{ background: 'var(--panel)' }}>
       <h2>{titulo}</h2>
       <div className="grid">
         <div><label>Diámetro del alambre d (mm)</label><input inputMode="decimal" value={lados[k].d} onChange={(e) => setLado(k, 'd', e.target.value)} /></div>
         <div><label>Cota medida sobre alambres M (mm)</label><input inputMode="decimal" value={lados[k].M} onChange={(e) => setLado(k, 'M', e.target.value)} /></div>
+        {num(extMin) !== null && num(extMax) !== null && (
+          <div><label>Diámetro exterior D, sobre el filete (mm)</label><input inputMode="decimal" value={lados[k].D} onChange={(e) => setLado(k, 'D', e.target.value)} /></div>
+        )}
       </div>
       <div className="nota">
         Límites del diámetro medio: <b>{limTxt(min, max)}</b>
-        {r && <> · Diámetro medio calculado E = <b className="mono">{r.E.toFixed(5)} mm</b> {r.ok === null ? '(sin límites cargados)' : r.ok ? '· CUMPLE' : '· NO CUMPLE'}</>}
+        {r && <> · Diámetro medio calculado E = <b className="mono">{r.E.toFixed(5)} mm</b> {r.okE === null ? '(sin límites cargados)' : r.okE ? '· CUMPLE' : '· NO CUMPLE'}</>}
+        {num(extMin) !== null && num(extMax) !== null && (
+          <><br />Límites del diámetro exterior: <b>{limTxt(extMin, extMax)}</b>{r && <> · medido D = <b className="mono">{r.D.toFixed(5)} mm</b> {r.okX ? '· CUMPLE' : '· NO CUMPLE'}</>}</>
+        )}
       </div>
     </div>
   )
@@ -1795,16 +1817,20 @@ function ControlRosca({ lista, solicitudes, inicial, operario, mostrar, alTermin
           </select>
         </div>
         <div><label>Fecha de control</label><input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} /></div>
-        <div><label>Incertidumbre de la medición (mm)</label><input inputMode="decimal" value={incert} onChange={(e) => setIncert(e.target.value)} placeholder="0,00000" /></div>
+        <div><label>Incertidumbre (opcional)</label><label style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 400 }}><input type="checkbox" style={{ width: 'auto' }} checked={usaIncert} onChange={(e) => setUsaIncert(e.target.checked)} /> Considerar incertidumbre en la decisión</label></div>
+        {usaIncert && <div><label>Incertidumbre de la medición (mm)</label><input inputMode="decimal" value={incert} onChange={(e) => setIncert(e.target.value)} placeholder="0,00000" /></div>}
+        {usaIncert && hayExt(inst) && <div><label>Incertidumbre del micrómetro, diám. exterior (mm)</label><input inputMode="decimal" value={incertExt} onChange={(e) => setIncertExt(e.target.value)} placeholder="si va vacío, usa la de arriba" /></div>}
         <div><label>Responsable</label><input value={resp} onChange={(e) => setResp(e.target.value)} placeholder={inst?.aCargo || ''} /></div>
       </div>
       {inst && (
         <>
           <div className="nota">{inst.rosca || 'Rosca'} · paso {inst.paso} mm · flanco {inst.angulo || 60}°{alambreIdealDe(inst) ? ` · alambre ideal ${alambreIdealDe(inst)} mm` : ''}</div>
-          {bloque('pasa', 'Lado PASA', rP, inst.pasaMin, inst.pasaMax)}
-          {bloque('nopasa', 'Lado NO PASA', rN, inst.nopasaMin, inst.nopasaMax)}
+          {bloque('pasa', 'Lado PASA', rP, inst.pasaMin, inst.pasaMax, inst.pasaExtMin, inst.pasaExtMax)}
+          {bloque('nopasa', 'Lado NO PASA', rN, inst.nopasaMin, inst.nopasaMax, inst.nopasaExtMin, inst.nopasaExtMax)}
           <div className="nota">
-            Criterio: en cada lado, <b>E − incertidumbre ≥ mínimo</b> y <b>E + incertidumbre ≤ máximo</b>. Si los dos lados cumplen, el tapón queda aprobado.
+            {usaIncert
+              ? <>Criterio: en cada lado, <b>E − incertidumbre ≥ mínimo</b> y <b>E + incertidumbre ≤ máximo</b>. Si el tapón tiene límites de diámetro exterior, además <b>D − incertidumbre ≥ mínimo</b> y <b>D + incertidumbre ≤ máximo</b>. Si los dos lados cumplen todo, el tapón queda aprobado.</>
+              : <>Criterio: en cada lado, <b>mínimo ≤ E ≤ máximo</b>. Si el tapón tiene límites de diámetro exterior, además <b>mínimo ≤ D ≤ máximo</b>. Si los dos lados cumplen todo, el tapón queda aprobado.</>}
           </div>
           {auto ? (
             <div style={{ margin: '10px 0' }}><span className={`estado ${auto === 'Aprobado' ? 'ok' : 'bad'}`}>{auto.toUpperCase()}</span> <span className="meta">decidido automáticamente</span></div>
