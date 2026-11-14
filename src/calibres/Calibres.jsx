@@ -1,4 +1,4 @@
-import { Component, useEffect, useMemo, useRef, useState } from 'react'
+import { Component, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { escuchar, guardar, borrar, nuevoId, modo } from './db.js'
 import './calibres.css'
 import { certificadoPDF } from './certificado.js'
@@ -11,7 +11,8 @@ const TIPOS = ['Vernier', 'Micrómetro', 'Alesómetro', 'Tapón P-NP', TIPO_ROSC
 const esRosca = (i) => !!i && i.tipo === TIPO_ROSCA
 const certificadoDe = (c, inst) => (c.tipoControl === 'rosca' ? certificadoRoscaPDF(c, inst) : certificadoPDF(c, inst))
 const MODALIDADES = ['Mecánico', 'Digital']
-const PUNTOS = 5
+const PUNTOS = 5 // filas disponibles en el formulario
+const MIN_PUNTOS = 2 // mínimo de mediciones para poder guardar; el resto es opcional
 const AVISO_DIAS = 7
 const MOTIVOS = ['Mal funcionamiento', 'Golpe o caída', 'Lectura dudosa', 'Daño o desgaste visible', 'Se pasó la fecha de control', 'Otro']
 const fmtHora = (ms) =>
@@ -264,6 +265,7 @@ function CalibresApp({ embebido = false, operario = '', maquinas = [] }) {
       {tab === 'instrumentos' && (
         <Instrumentos
           lista={lista}
+          controles={controles}
           maquinas={listaMaq}
           tols={tols}
           editando={editando}
@@ -379,11 +381,72 @@ const VACIO = {
   frecMeses: 12, aCargo: '', apreciacion: '', tolerancia: '', rango: '', rosca: '', paso: '', angulo: '60', alambre: '', pasaMin: '', pasaMax: '', nopasaMin: '', nopasaMax: '', pasaExtMin: '', pasaExtMax: '', nopasaExtMin: '', nopasaExtMax: '', maquina: '', ultimaRevision: '', vencimiento: '', activo: true, rechazado: false,
 }
 
-function Instrumentos({ lista, tols, maquinas, editando, setEditando, irAControl, mostrar }) {
+// Historial de controles de un instrumento, dentro de la misma página (el PDF sigue disponible por control)
+function HistorialInstrumento({ inst, controles, lista, mostrar }) {
+  const hist = Object.entries(controles || {})
+    .map(([id, v]) => ({ ...v, id }))
+    .filter((x) => x.instrumentoId === inst.id)
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.creado || 0) - (a.creado || 0))
+
+  const pdf = (c) =>
+    certificadoDe(c, lista.find((i) => i.id === c.instrumentoId) || inst).catch(() => mostrar('No se pudo generar el PDF'))
+
+  return (
+    <div style={{ marginTop: 10, borderTop: '1px dashed var(--line)', paddingTop: 8 }}>
+      <b>Historial de mediciones ({hist.length})</b>
+      {hist.length === 0 && <div className="nota">Todavía no tiene controles registrados.</div>}
+      {hist.map((c) => (
+        <div key={c.id} style={{ padding: '8px 0', borderBottom: '1px dashed var(--line)' }}>
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <span>
+              <b>{fmt(c.fecha)}</b> <span className="meta">· {c.responsable || '—'}</span>
+            </span>
+            <span className={`estado ${c.resultado === 'Aprobado' ? 'ok' : 'bad'}`}>{String(c.resultado || '').toUpperCase()}</span>
+          </div>
+          <div className="meta">
+            Patrón: {c.galga || '—'} · Incert.: {c.incertidumbre ?? '—'}
+            {c.errorMax != null && ` · error máx. ${Number(c.errorMax).toFixed(5)} mm`}
+            {c.tolerancia != null && ` · tolerancia ${c.tolerancia} mm`}
+          </div>
+          {(c.puntos || []).length > 0 && (
+            <div className="puntos" style={{ marginTop: 6 }}>
+              <span />
+              <span className="h">Real</span><span className="h">Hallado</span><span className="h" style={{ textAlign: 'right' }}>Dif.</span>
+              {c.puntos.map((p, k) => {
+                const d = p.hallado - p.real
+                return (
+                  <Fragment key={k}>
+                    <span className="mono" style={{ color: 'var(--muted)' }}>{k + 1}</span>
+                    <span className="mono">{n5(p.real)}</span>
+                    <span className="mono">{n5(p.hallado)}</span>
+                    <span className="dif">{Number.isNaN(d) ? '' : (d > 0 ? '+' : '') + d.toFixed(5)}</span>
+                  </Fragment>
+                )
+              })}
+            </div>
+          )}
+          {c.tipoControl === 'rosca' && c.lados && (
+            <div className="meta">
+              {c.rosca || 'Rosca'} · E PASA {n5(c.lados.pasa?.E)} mm · E NO PASA {n5(c.lados.nopasa?.E)} mm
+              {c.lados.pasa?.D != null && <> · D ext. PASA {n5(c.lados.pasa.D)} mm · D ext. NO PASA {n5(c.lados.nopasa?.D)} mm</>}
+            </div>
+          )}
+          {c.observaciones && <div className="meta">{c.observaciones}</div>}
+          <div className="row" style={{ marginTop: 6 }}>
+            <button className="btn small sec" onClick={() => pdf(c)}>Certificado PDF</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Instrumentos({ lista, controles = {}, tols, maquinas, editando, setEditando, irAControl, mostrar }) {
   const [q, setQ] = useState('')
   const [fTipo, setFTipo] = useState('')
   const [fMaq, setFMaq] = useState('')
   const [abierto, setAbierto] = useState('')
+  const [verHist, setVerHist] = useState('')
 
   if (editando) {
     const base = editando === 'nuevo' ? VACIO : editando === 'nuevo-rosca' ? { ...VACIO, tipo: TIPO_ROSCA } : lista.find((i) => i.id === editando) || VACIO
@@ -457,8 +520,10 @@ function Instrumentos({ lista, tols, maquinas, editando, setEditando, irAControl
               <div className="meta">Máquina: {i.maquina || 'sin asignar'} · A cargo: {i.aCargo || '—'}</div>
               <div className="meta">Última rev.: {fmt(i.ultimaRevision)} · Vence: {fmt(i.vencimiento)}</div>
               {abierto === i.id && <FichaDatos inst={i} tols={tols} />}
+              {verHist === i.id && <HistorialInstrumento inst={i} controles={controles} lista={lista} mostrar={mostrar} />}
               <div className="row" style={{ marginTop: 8 }}>
                 <button className="btn small sec" onClick={() => setAbierto(abierto === i.id ? '' : i.id)}>{abierto === i.id ? 'Ocultar ficha' : 'Ver ficha'}</button>
+                <button className="btn small sec" onClick={() => setVerHist(verHist === i.id ? '' : i.id)}>{verHist === i.id ? 'Ocultar historial' : 'Ver historial'}</button>
                 <button className="btn small" onClick={() => irAControl(i.id)}>Registrar control</button>
                 <button className="btn small sec" onClick={() => setEditando(i.id)}>Editar</button>
                 <button className="btn small sec" onClick={() => etiquetasPDF([i]).catch(() => mostrar('No se pudo generar la etiqueta'))}>Etiqueta</button>
@@ -646,7 +711,7 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
     return a === null || b === null ? null : b - a
   })
   const cargados = difs.filter((d) => d !== null).length
-  const completo = cargados === PUNTOS
+  const completo = cargados >= MIN_PUNTOS
   const maxErr = difs.reduce((m, d) => (d === null ? m : Math.max(m, Math.abs(d))), 0)
   const inc = num(incert) ?? 0
   const total = maxErr + inc
@@ -662,7 +727,7 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
       .map((r, i) => ({ real: num(r), hallado: num(hallados[i]) }))
       .filter((p) => p.real !== null || p.hallado !== null)
     if (puntos.some((p) => p.real === null || p.hallado === null)) return setErr('Cada punto necesita valor real y valor hallado.')
-    if (tolInfo && !completo) return setErr(`Cargá los ${PUNTOS} puntos para que se calcule el resultado.`)
+    if (!completo) return setErr(`Cargá al menos ${MIN_PUNTOS} mediciones (valor real y valor hallado). Las otras ${PUNTOS - MIN_PUNTOS} son opcionales.`)
     const vence = resultado === 'Aprobado' ? sumarMeses(fecha, inst.frecMeses) || inst.vencimiento || '' : ''
     const id = nuevoId()
     await guardar('controles', id, {
@@ -712,7 +777,8 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
         </div>
       )}
 
-      <h2 style={{ marginTop: 16 }}>Mediciones ({PUNTOS})</h2>
+      <h2 style={{ marginTop: 16 }}>Mediciones (mínimo {MIN_PUNTOS}, hasta {PUNTOS})</h2>
+      <div className="nota" style={{ marginTop: 0, marginBottom: 8 }}>Las mediciones {MIN_PUNTOS + 1} a {PUNTOS} son opcionales. Dejá vacías las que no uses.</div>
       <div className="puntos">
         <span />
         <span className="h">Valor real (galga)</span><span className="h">Valor hallado</span><span className="h" style={{ textAlign: 'right' }}>Dif.</span>
@@ -738,7 +804,7 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
                 Resultado:{' '}
                 {completo
                   ? <span className={`estado ${auto === 'Aprobado' ? 'ok' : 'bad'}`}>{auto.toUpperCase()}</span>
-                  : <span className="nota">se calcula al cargar los {PUNTOS} puntos ({cargados}/{PUNTOS})</span>}
+                  : <span className="nota">se calcula al cargar al menos {MIN_PUNTOS} mediciones ({cargados}/{PUNTOS})</span>}
               </div>
             </>
           ) : (
