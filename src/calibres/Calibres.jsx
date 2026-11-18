@@ -5,6 +5,7 @@ import { certificadoPDF } from './certificado.js'
 import { certificadoRoscaPDF } from './certificadoRosca.js'
 import { etiquetasPDF } from './etiquetas.js'
 import { listadoMaquinaPDF } from './listado.js'
+import { metodoDe, fechaHora, TEMP_REF } from './normas.js'
 
 const TIPO_ROSCA = 'Tapón roscado'
 const TIPOS = ['Vernier', 'Micrómetro', 'Alesómetro', 'Tapón P-NP', TIPO_ROSCA, 'Otro']
@@ -699,6 +700,7 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
   const [hallados, setHallados] = useState(Array(PUNTOS).fill(''))
   const [manual, setManual] = useState('Aprobado')
   const [resp, setResp] = useState(operario || '')
+  const [temp, setTemp] = useState('')
   const [obs, setObs] = useState('')
   const [err, setErr] = useState('')
 
@@ -734,6 +736,7 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
       instrumentoId: inst.id, codigo: inst.codigo, fecha, galga: galga.trim(), incertidumbre: num(incert),
       puntos, resultado, resultadoAuto: !!auto, errorMax: puntos.length ? maxErr : null,
       tolerancia: tolInfo ? tolInfo.valor : null, toleranciaOrigen: tolInfo ? tolInfo.origen : '',
+      metodo: metodoDe(inst, { tipoControl: 'normal', tolInfo, auto: !!auto, temperatura: num(temp) ?? '' }),
       responsable: resp.trim() || inst.aCargo || '', observaciones: obs.trim(), creado: Date.now(),
       proximoVencimiento: vence,
       // datos del instrumento al momento del control (para el certificado)
@@ -769,6 +772,7 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
         <div><label>Galga / patrón usado</label><input value={galga} onChange={(e) => setGalga(e.target.value)} /></div>
         <div><label>Incertidumbre del patrón (mm)</label><input inputMode="decimal" value={incert} onChange={(e) => setIncert(e.target.value)} placeholder="0,00000" /></div>
         <div><label>Responsable del control</label><input value={resp} onChange={(e) => setResp(e.target.value)} placeholder={inst?.aCargo || ''} /></div>
+        <div><label>Temperatura ambiente (°C) — opcional</label><input inputMode="decimal" value={temp} onChange={(e) => setTemp(e.target.value)} placeholder={`referencia ${TEMP_REF}`} /></div>
       </div>
 
       {inst && (
@@ -787,6 +791,8 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
             onReal={(v) => setAt(reales, setReales, i, v)} onHallado={(v) => setAt(hallados, setHallados, i, v)} />
         ))}
       </div>
+
+      {inst && <PanelMetodo inst={inst} tolInfo={tolInfo} auto={!!auto} temp={temp} />}
 
       {inst && (
         <div className="card" style={{ marginTop: 14, background: 'var(--panel2)' }}>
@@ -835,6 +841,22 @@ function RegistrarControl({ lista, tols, solicitudes, inicial, operario, mostrar
         <button className="btn sec" onClick={alTerminar}>Cancelar</button>
       </div>
       <div className="nota">Si el resultado es Aprobado, la última revisión y el vencimiento del instrumento se actualizan solos.</div>
+    </div>
+  )
+}
+
+function PanelMetodo({ inst, tolInfo, auto, temp, tipoControl = 'normal', usaIncert = true }) {
+  const m = metodoDe(inst, { tipoControl, tolInfo, auto, usaIncert, temperatura: num(temp) ?? '' })
+  return (
+    <div className="card" style={{ marginTop: 14, background: 'var(--panel2)' }}>
+      <h2 style={{ marginTop: 0 }}>Método y criterio</h2>
+      <div className="nota" style={{ marginTop: 0 }}>
+        <b>Cuándo:</b> {fechaHora(Date.now())} hs (queda guardado al registrar).<br />
+        <b>Norma:</b> {m.norma}.<br />
+        <b>Patrón:</b> {m.patronRef}.<br />
+        <b>Marco:</b> {m.marco}.<br />
+        <b>Criterio:</b> {m.regla}
+      </div>
     </div>
   )
 }
@@ -891,7 +913,8 @@ function Historial({ lista, controles, mostrar }) {
         return (
           <div className="lista-item" key={c.id}>
             <div>
-              <div className="cod">{c.codigo} <span className="meta">· {fmt(c.fecha)}</span></div>
+              <div className="cod">{c.codigo} <span className="meta">· {fmt(c.fecha)}{c.creado ? ` · ${fechaHora(c.creado).slice(11)} hs` : ''}</span></div>
+              {c.metodo && <div className="meta">Norma: {c.metodo.norma.split(':')[0]}</div>}
               <div className="meta">Patrón: {c.galga || '—'} · Incert.: {c.incertidumbre ?? '—'} · Resp.: {c.responsable || '—'}</div>
               {c.tipoControl === 'rosca' && c.lados && (
                 <div className="meta">
@@ -1792,6 +1815,7 @@ function ControlRosca({ lista, solicitudes, inicial, operario, mostrar, alTermin
   const [lados, setLados] = useState({ pasa: { d: '', M: '', D: '' }, nopasa: { d: '', M: '', D: '' } })
   const [manual, setManual] = useState('Aprobado')
   const [resp, setResp] = useState(operario || '')
+  const [temp, setTemp] = useState('')
   const [obs, setObs] = useState('')
   const [err, setErr] = useState('')
   const inst = lista.find((i) => i.id === instId)
@@ -1839,6 +1863,7 @@ function ControlRosca({ lista, solicitudes, inicial, operario, mostrar, alTermin
       rosca: inst.rosca || '', paso: num(inst.paso), angulo: num(inst.angulo) ?? 60,
       lados: { pasa: lado(rP), nopasa: lado(rN) }, puntos: [], errorMax: null, tolerancia: null,
       resultado, resultadoAuto: !!auto, responsable: resp.trim() || inst.aCargo || '', observaciones: obs.trim(), creado: Date.now(),
+      metodo: metodoDe(inst, { tipoControl: 'rosca', usaIncert, auto: !!auto, temperatura: num(temp) ?? '' }),
       proximoVencimiento: vence, tipoTexto: TIPO_ROSCA, modalidad: inst.modalidad || '', marca: inst.marca || '', nroFab: inst.nroFab || '', aCargo: inst.aCargo || '',
     })
     const { id: _omit, ...datos } = inst
@@ -1887,9 +1912,11 @@ function ControlRosca({ lista, solicitudes, inicial, operario, mostrar, alTermin
         {usaIncert && <div><label>Incertidumbre de la medición (mm)</label><input inputMode="decimal" value={incert} onChange={(e) => setIncert(e.target.value)} placeholder="0,00000" /></div>}
         {usaIncert && hayExt(inst) && <div><label>Incertidumbre del micrómetro, diám. exterior (mm)</label><input inputMode="decimal" value={incertExt} onChange={(e) => setIncertExt(e.target.value)} placeholder="si va vacío, usa la de arriba" /></div>}
         <div><label>Responsable</label><input value={resp} onChange={(e) => setResp(e.target.value)} placeholder={inst?.aCargo || ''} /></div>
+        <div><label>Temperatura ambiente (°C) — opcional</label><input inputMode="decimal" value={temp} onChange={(e) => setTemp(e.target.value)} placeholder={`referencia ${TEMP_REF}`} /></div>
       </div>
       {inst && (
         <>
+          <PanelMetodo inst={inst} tolInfo={null} auto={!!auto} temp={temp} tipoControl="rosca" usaIncert={usaIncert} />
           <div className="nota">{inst.rosca || 'Rosca'} · paso {inst.paso} mm · flanco {inst.angulo || 60}°{alambreIdealDe(inst) ? ` · alambre ideal ${alambreIdealDe(inst)} mm` : ''}</div>
           {bloque('pasa', 'Lado PASA', rP, inst.pasaMin, inst.pasaMax, inst.pasaExtMin, inst.pasaExtMax)}
           {bloque('nopasa', 'Lado NO PASA', rN, inst.nopasaMin, inst.nopasaMax, inst.nopasaExtMin, inst.nopasaExtMax)}
