@@ -14,7 +14,7 @@ const POR_TIPO = {
     patron: 'Bloques patron ISO 3650 con certificado trazable',
   },
   'Alesómetro': {
-    norma: 'Especificacion del fabricante y VDI/VDE/DGQ 2618 (sin norma de producto ISO; a confirmar por Calidad)',
+    norma: 'Especificacion del fabricante y VDI/VDE/DGQ 2618 (sin norma de producto ISO)',
     patron: 'Anillo patron o bloques patron con certificado trazable',
   },
   'Tapón P-NP': {
@@ -22,7 +22,7 @@ const POR_TIPO = {
     patron: 'Bloques patron ISO 3650 con certificado trazable',
   },
   'Tapón roscado': {
-    norma: 'ISO 1502: calibres limite roscados; diametro medio por metodo de las tres varillas',
+    norma: 'ISO 1502: calibres limite para roscas metricas ISO (PASA / NO PASA)',
     patron: 'Varillas calibradas y micrometro con certificado trazable',
   },
 }
