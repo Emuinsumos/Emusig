@@ -1,3 +1,4 @@
+import { bloqueMetodoPDF } from './normas.js'
 // Certificado PDF de un control de instrumento (jsPDF, se carga recién al pedir el PDF)
 const fmt = (iso) => (iso ? iso.split('-').reverse().join('/') : '-')
 const n5 = (v) => (v === null || v === undefined || Number.isNaN(v) ? '-' : Number(v).toFixed(5))
@@ -104,6 +105,7 @@ export async function certificadoPDF(c, inst) {
   }
 
   y += 4
+  y = bloqueMetodoPDF(doc, c, y, M, W) + 2
   const aprobado = c.resultado === 'Aprobado'
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(16)

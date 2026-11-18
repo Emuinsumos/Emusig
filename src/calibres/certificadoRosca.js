@@ -1,3 +1,4 @@
+import { bloqueMetodoPDF } from './normas.js'
 // Certificado PDF del control de un tapón roscado (jsPDF, se carga al pedirlo)
 const fmt = (iso) => (iso ? iso.split('-').reverse().join('/') : '-')
 const n4 = (v) => (v === null || v === undefined || Number.isNaN(v) ? '-' : Number(v).toFixed(4))
@@ -115,7 +116,8 @@ export async function certificadoRoscaPDF(c, inst) {
   } else {
     doc.text('Resultado cargado manualmente (faltan limites o datos para decidir).', M, y)
   }
-  y += 10
+  y += 4
+  y = bloqueMetodoPDF(doc, c, y, M, W) + 2
   const aprobado = c.resultado === 'Aprobado'
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(16)
