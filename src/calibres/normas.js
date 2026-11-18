@@ -96,7 +96,6 @@ export function bloqueMetodoPDF(doc, c, y, M, W) {
   linea('Patron', m.patronRef)
   linea('Marco', m.marco)
   linea('Temperatura', `${m.temperatura != null ? m.temperatura + ' C medida' : 'no registrada'} (referencia ${m.tempRef} C)`)
-  if (m.origenLimite) linea('Base del limite', m.origenLimite)
   linea('Criterio de decision', m.regla)
   return y + 2
 }
