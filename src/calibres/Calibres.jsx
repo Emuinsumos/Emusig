@@ -6,6 +6,8 @@ import { certificadoRoscaPDF } from './certificadoRosca.js'
 import { etiquetasPDF } from './etiquetas.js'
 import { listadoMaquinaPDF } from './listado.js'
 import { metodoDe, fechaHora, TEMP_REF } from './normas.js'
+import { hojaVidaPDF } from './hojaVida.js'
+import { controlesDe, seriesTendencia, lecturaTendencia } from './tendencia.js'
 
 const TIPO_ROSCA = 'Tapón roscado'
 const TIPOS = ['Vernier', 'Micrómetro', 'Alesómetro', 'Tapón P-NP', TIPO_ROSCA, 'Otro']
@@ -382,6 +384,38 @@ const VACIO = {
   frecMeses: 12, aCargo: '', apreciacion: '', tolerancia: '', rango: '', rosca: '', paso: '', angulo: '60', alambre: '', pasaMin: '', pasaMax: '', nopasaMin: '', nopasaMax: '', pasaExtMin: '', pasaExtMax: '', nopasaExtMin: '', nopasaExtMax: '', maquina: '', ultimaRevision: '', vencimiento: '', activo: true, rechazado: false,
 }
 
+// Gráfico de tendencia (SVG puro): puntos de cada control y líneas de límite
+function GraficoTendencia({ serie }) {
+  const W = 340, H = 140, L = 50, R = 12, T = 10, B = 24
+  const vals = serie.pts.map((p) => p.v)
+  let lo = Math.min(...vals, ...serie.lineas)
+  let hi = Math.max(...vals, ...serie.lineas)
+  if (hi === lo) { hi += 0.001; lo -= 0.001 }
+  const pad = (hi - lo) * 0.12
+  lo -= pad
+  hi += pad
+  const n = serie.pts.length
+  const x = (i) => L + (i * (W - L - R)) / (n - 1)
+  const y = (v) => T + ((hi - v) / (hi - lo)) * (H - T - B)
+  const camino = serie.pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ')
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: 440, height: 'auto', display: 'block' }} role="img" aria-label={serie.nombre}>
+      <rect x={L} y={T} width={W - L - R} height={H - T - B} fill="none" stroke="var(--line)" />
+      {serie.lineas.map((v, k) => (
+        <g key={k}>
+          <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="var(--bad)" strokeDasharray="4 3" strokeWidth="1" />
+          <text x={L - 4} y={y(v) + 3} fontSize="9" textAnchor="end" fill="var(--muted)">{Number(v).toFixed(4)}</text>
+        </g>
+      ))}
+      <path d={camino} fill="none" stroke="var(--ok)" strokeWidth="1.6" />
+      {serie.pts.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.v)} r="3.2" fill={p.ok ? 'var(--ok)' : 'var(--bad)'} />)}
+      <text x={L} y={H - 8} fontSize="9" fill="var(--muted)">{fmt(serie.pts[0].fecha)}</text>
+      <text x={W - R} y={H - 8} fontSize="9" textAnchor="end" fill="var(--muted)">{fmt(serie.pts[n - 1].fecha)}</text>
+      <text x={(L + W - R) / 2} y={H - 8} fontSize="9" textAnchor="middle" fill="var(--muted)">último {Number(serie.pts[n - 1].v).toFixed(5)}</text>
+    </svg>
+  )
+}
+
 // Historial de controles de un instrumento, dentro de la misma página (el PDF sigue disponible por control)
 function HistorialInstrumento({ inst, controles, lista, mostrar }) {
   const hist = Object.entries(controles || {})
@@ -394,6 +428,20 @@ function HistorialInstrumento({ inst, controles, lista, mostrar }) {
 
   return (
     <div style={{ marginTop: 10, borderTop: '1px dashed var(--line)', paddingTop: 8 }}>
+      {seriesTendencia(controlesDe(inst, controles)).map((sr) => (
+        <div key={sr.clave} style={{ marginBottom: 10 }}>
+          <b>Tendencia · {sr.nombre}</b>
+          {sr.pts.length >= 2 ? (
+            <>
+              <GraficoTendencia serie={sr} />
+              <div className="meta">{sr.limTxt}</div>
+              {lecturaTendencia(sr).map((t, k) => <div key={k} className="meta">{t}</div>)}
+            </>
+          ) : (
+            <div className="meta">Se necesitan al menos 2 controles para ver la tendencia.</div>
+          )}
+        </div>
+      ))}
       <b>Historial de mediciones ({hist.length})</b>
       {hist.length === 0 && <div className="nota">Todavía no tiene controles registrados.</div>}
       {hist.map((c) => (
@@ -528,6 +576,7 @@ function Instrumentos({ lista, controles = {}, tols, maquinas, editando, setEdit
                 <button className="btn small" onClick={() => irAControl(i.id)}>Registrar control</button>
                 <button className="btn small sec" onClick={() => setEditando(i.id)}>Editar</button>
                 <button className="btn small sec" onClick={() => etiquetasPDF([i]).catch(() => mostrar('No se pudo generar la etiqueta'))}>Etiqueta</button>
+                <button className="btn small sec" onClick={() => hojaVidaPDF(i, controlesDe(i, controles), e.texto).catch(() => mostrar('No se pudo generar la hoja de vida'))}>Hoja de vida PDF</button>
               </div>
             </div>
             <span className={`estado ${e.clase}`}>{e.texto}</span>
